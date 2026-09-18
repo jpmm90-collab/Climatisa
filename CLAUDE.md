@@ -5,12 +5,22 @@ Este repo implementa el sistema descrito en el skill
 Ese archivo es la fuente principal de verdad del producto. Léelo por
 completo antes de tocar código si no lo has hecho en esta sesión.
 
+## Excepciones confirmadas al skill
+
+El skill (sección 0) fija el proveedor de Postgres a "Supabase o Neon".
+**Excepción confirmada por el product owner:** el proveedor de Postgres de
+este proyecto es **Railway**, no Neon ni Supabase. Esta línea de CLAUDE.md
+anula esa parte de la sección 0 del skill; el resto de la sección 0 sigue
+vigente sin cambios. No revertir a Neon/Supabase ni volver a preguntar por
+esto salvo que el product owner lo pida explícitamente.
+
 ## No negociable (repetido aquí para que nunca se pierda de vista)
 
 - Stack fijo: Next.js 14 (App Router) + TypeScript strict, Tailwind + shadcn/ui,
-  PostgreSQL + Prisma, Auth.js (Credentials + bcrypt), `@react-pdf/renderer`
-  server-side, Zod, React Hook Form, Vitest, Playwright. No Redux/Zustand,
-  no GraphQL, no microservicios, no segundo ORM, no IA para calcular precios.
+  PostgreSQL (Railway) + Prisma, Auth.js (Credentials + bcrypt),
+  `@react-pdf/renderer` server-side, Zod, React Hook Form, Vitest, Playwright.
+  No Redux/Zustand, no GraphQL, no microservicios, no segundo ORM, no IA para
+  calcular precios.
 - Idioma de la interfaz: español, sin i18n.
 - Moneda: GTQ, formato `Q 1,234.00`. Timezone `America/Guatemala`.
 - Vendedor/responsable fijo en toda cotización y PDF: **Romeo Morales**

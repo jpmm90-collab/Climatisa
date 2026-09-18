@@ -14,11 +14,9 @@ Andamiaje inicial para arrancar el proyecto con Claude Code. Ya incluye:
 - Node.js 20+ y npm.
 - Claude Code instalado (`npm install -g @anthropic-ai/claude-code`, o la
   app de escritorio de Claude, pestaña "Code").
-- Una cuenta de **Neon** o **Supabase** para Postgres (elige una ahora y no
-  la cambies después — el skill lo exige explícitamente). Si no tienes
-  preferencia, Neon es la opción más simple porque solo da Postgres —
-  Supabase trae más servicios (auth, storage) que este proyecto no usa,
-  ya que la autenticación va con Auth.js/Credentials, no con Supabase Auth.
+- Una cuenta de **Railway** para Postgres. El skill original fija Neon o
+  Supabase como proveedor; Railway queda documentado como excepción
+  confirmada en `CLAUDE.md`, así que Claude Code no debería objetar esto.
 
 ## 1. Arrancar el repo
 
@@ -44,7 +42,7 @@ Y como primer mensaje (Fase 1 del skill — sección 39):
 >
 > Implementa la Fase 1:
 > 1. Inicializa Next.js 14 (App Router, TypeScript strict) con Tailwind y shadcn/ui.
-> 2. Configura Prisma con [Neon | Supabase] Postgres — usa ese proveedor y créalo en el schema.prisma.
+> 2. Configura Prisma con Railway Postgres (ver excepción confirmada en CLAUDE.md) — créalo en el schema.prisma.
 > 3. Implementa autenticación con Auth.js (Credentials Provider + bcrypt), con roles ADMIN y COTIZADOR.
 > 4. Crea el layout móvil-first base, la pantalla de login y la pantalla de inicio (Crear cotización / Buscar cotización / Crear cliente), usando el logo en public/branding/.
 > 5. Implementa el modelo Client y el flujo de crear/buscar cliente (NIT acepta "CF").
