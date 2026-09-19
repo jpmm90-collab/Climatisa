@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Settings } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { LogoutButton } from "@/components/layout/logout-button";
+import { Button } from "@/components/ui/button";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Administrador",
@@ -36,6 +38,13 @@ export async function AppHeader() {
                 {ROLE_LABELS[session.user.role] ?? session.user.role}
               </p>
             </div>
+            {session.user.role === "ADMIN" ? (
+              <Button asChild variant="ghost" size="icon" aria-label="Administración">
+                <Link href="/admin">
+                  <Settings className="size-5" />
+                </Link>
+              </Button>
+            ) : null}
             <LogoutButton />
           </div>
         ) : null}
