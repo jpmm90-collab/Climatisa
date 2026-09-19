@@ -71,3 +71,16 @@ decisión de negocio, que Claude Code se detenga y pregunte en vez de asumir
 
 Copia `.env.example` a `.env` y complétalo con tu `DATABASE_URL` (Neon o
 Supabase) y un `NEXTAUTH_SECRET` generado con `openssl rand -base64 32`.
+
+## 5. ⚠️ Credenciales de seed — cambiar antes de producción
+
+`prisma/seed.ts` crea dos usuarios de demostración para poder probar el login
+desde la Fase 1, con contraseñas triviales a propósito:
+
+- `admin` / `admin123` (rol `ADMIN`)
+- `cotizador` / `cotizador123` (rol `COTIZADOR`)
+
+Esto no viene del skill — es un mínimo necesario para poder verificar
+autenticación durante el desarrollo. **Antes de desplegar a producción**:
+cambia estas contraseñas (o borra estos usuarios y crea los reales), y no
+corras `prisma/seed.ts` contra la base de producción sin editarlo primero.
