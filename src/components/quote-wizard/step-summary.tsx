@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -15,6 +18,7 @@ export function StepSummary() {
   const { state } = useQuoteWizard();
   const router = useRouter();
   const quote = deriveQuote(state);
+  const [generating, setGenerating] = useState(false);
 
   const startOver = () => {
     resetWizard();
@@ -22,13 +26,50 @@ export function StepSummary() {
     window.location.reload();
   };
 
+  const generate = async () => {
+    if (!state.client) return;
+    setGenerating(true);
+
+    const response = await fetch("/api/quotes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: state.client.id,
+        areas: state.areas.map((area) => ({
+          name: area.name,
+          equipmentLines: area.equipmentLines.map((line) => ({
+            equipmentId: line.equipmentId,
+            quantity: line.quantity,
+            meters: line.meters,
+            complexityId: line.complexityId,
+          })),
+        })),
+        extras: state.extras.map((extra) => ({ description: extra.description, price: extra.price })),
+        discountType: state.discountType,
+        discountValue: state.discountValue,
+        depositPercentage: state.depositPercentage,
+        additionalDescription: state.additionalDescription,
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      toast.error(data?.error ?? "No se pudo generar la cotización");
+      setGenerating(false);
+      return;
+    }
+
+    const { quote: created } = await response.json();
+    resetWizard();
+    toast.success(`Cotización ${created.quoteNumber} generada`);
+    router.push(`/cotizaciones/${created.id}`);
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-2xl font-semibold">Resumen</h1>
-        <p className="text-sm text-muted-foreground">
-          Vista previa de la cotización. Generarla y crear el PDF llega en la siguiente etapa.
-        </p>
+        <p className="text-sm text-muted-foreground">Revisa todo antes de generar la cotización.</p>
       </div>
 
       <Card>
@@ -117,6 +158,11 @@ export function StepSummary() {
           </div>
         </CardContent>
       </Card>
+
+      <Button size="lg" className="h-14 gap-2 text-base" disabled={generating} onClick={generate}>
+        <Send className="size-5" />
+        {generating ? "Generando..." : "Generar cotización"}
+      </Button>
 
       <WizardBackButton />
       <Button variant="ghost" className="text-muted-foreground" onClick={startOver}>
