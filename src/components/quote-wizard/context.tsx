@@ -44,6 +44,7 @@ export interface QuoteWizardContextValue {
   goBack: () => void;
   catalogs: QuoteWizardCatalogs;
   loadingCatalogs: boolean;
+  editQuoteId?: string;
 }
 
 export const QuoteWizardContext = createContext<QuoteWizardContextValue | null>(null);

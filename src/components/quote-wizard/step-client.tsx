@@ -16,7 +16,8 @@ interface ClientResult {
 }
 
 export function StepClient() {
-  const { state, update, goNext } = useQuoteWizard();
+  const { state, update, goNext, editQuoteId } = useQuoteWizard();
+  const returnTo = editQuoteId ? `/cotizaciones/${editQuoteId}/editar` : "/cotizaciones/nueva";
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ClientResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -88,7 +89,7 @@ export function StepClient() {
       </div>
 
       <Button asChild variant="secondary" size="lg" className="h-14 gap-2 text-base">
-        <Link href="/clientes/nuevo?returnTo=/cotizaciones/nueva">
+        <Link href={`/clientes/nuevo?returnTo=${encodeURIComponent(returnTo)}`}>
           <UserPlus className="size-5" />
           Crear cliente
         </Link>

@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { EditQuoteButton } from "@/components/quotes/edit-quote-button";
+import { QuoteStatusActions } from "@/components/quotes/quote-status-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -146,6 +148,10 @@ export default async function VerCotizacionPage({ params }: { params: Promise<{ 
           Descargar PDF
         </a>
       </Button>
+
+      <EditQuoteButton quoteId={quote.id} status={quote.status} />
+
+      <QuoteStatusActions quoteId={quote.id} status={quote.status} />
     </div>
   );
 }

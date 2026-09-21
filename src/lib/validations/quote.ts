@@ -49,3 +49,25 @@ export const createQuoteSchema = z.object({
 });
 
 export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;
+
+// Edición (sección 43): "se reemplazan los snapshots de los elementos
+// modificados" — sourceLineId, cuando viene presente, identifica una línea
+// SIN TOCAR desde la última versión guardada; su snapshot se conserva tal
+// cual, sin recalcular con precios vigentes. Su ausencia (línea nueva, o
+// una línea existente que el usuario quitó y volvió a agregar) sí dispara
+// el recálculo normal con precios actuales.
+const updateQuoteAreaEquipmentLineSchema = quoteAreaEquipmentLineSchema.extend({
+  sourceLineId: z.string().optional(),
+});
+
+const updateQuoteAreaSchema = quoteAreaSchema.extend({
+  equipmentLines: z
+    .array(updateQuoteAreaEquipmentLineSchema)
+    .min(1, "El área necesita al menos un equipo"),
+});
+
+export const updateQuoteSchema = createQuoteSchema.extend({
+  areas: z.array(updateQuoteAreaSchema).min(1, "La cotización necesita al menos un área"),
+});
+
+export type UpdateQuoteInput = z.infer<typeof updateQuoteSchema>;

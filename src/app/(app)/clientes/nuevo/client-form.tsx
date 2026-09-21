@@ -42,7 +42,7 @@ export function ClientForm({ returnTo }: { returnTo: string }) {
 
     const { client } = await response.json();
 
-    if (returnTo.startsWith("/cotizaciones/nueva")) {
+    if (returnTo.startsWith("/cotizaciones/")) {
       setPendingSelectedClientId(client.id);
     }
 

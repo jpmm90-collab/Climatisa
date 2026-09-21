@@ -17,13 +17,14 @@ import { formatCurrency } from "@/lib/format";
 import { INSTALLATION_BASE_TEXT, TEXT_LIMITS, VENDEDOR_RESPONSABLE } from "@/lib/constants";
 
 export function StepSummary() {
-  const { state, update } = useQuoteWizard();
+  const { state, update, editQuoteId } = useQuoteWizard();
   const router = useRouter();
   const quote = deriveQuote(state);
   const [generating, setGenerating] = useState(false);
+  const isEditing = Boolean(editQuoteId);
 
   const startOver = () => {
-    resetWizard();
+    resetWizard(editQuoteId);
     router.refresh();
     window.location.reload();
   };
@@ -33,14 +34,18 @@ export function StepSummary() {
     setGenerating(true);
 
     try {
-      const response = await fetch("/api/quotes", {
-        method: "POST",
+      const response = await fetch(isEditing ? `/api/quotes/${editQuoteId}` : "/api/quotes", {
+        method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientId: state.client.id,
           areas: state.areas.map((area) => ({
             name: area.name,
             equipmentLines: area.equipmentLines.map((line) => ({
+              // Presente solo si el usuario no tocó esta línea (sección 43):
+              // le indica al servidor que conserve el snapshot tal cual, sin
+              // recalcular con precios vigentes.
+              sourceLineId: line.sourceLineId,
               equipmentId: line.equipmentId,
               quantity: line.quantity,
               meters: line.meters,
@@ -58,14 +63,17 @@ export function StepSummary() {
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        toast.error(data?.error ?? "No se pudo generar la cotización. Tus datos siguen aquí, intenta de nuevo.");
+        toast.error(
+          data?.error ??
+            `No se pudo ${isEditing ? "guardar" : "generar"} la cotización. Tus datos siguen aquí, intenta de nuevo.`,
+        );
         return;
       }
 
-      const { quote: created } = await response.json();
-      resetWizard();
-      toast.success(`Cotización ${created.quoteNumber} generada`);
-      router.push(`/cotizaciones/${created.id}`);
+      const { quote: saved } = await response.json();
+      resetWizard(editQuoteId);
+      toast.success(isEditing ? `Cotización ${saved.quoteNumber} actualizada` : `Cotización ${saved.quoteNumber} generada`);
+      router.push(`/cotizaciones/${saved.id}`);
     } catch {
       // Sin conexión, tiempo de espera agotado, etc. — el borrador NO se
       // borra (solo se limpia tras una respuesta exitosa del servidor), así
@@ -82,7 +90,9 @@ export function StepSummary() {
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-2xl font-semibold">Resumen</h1>
-        <p className="text-sm text-muted-foreground">Revisa todo antes de generar la cotización.</p>
+        <p className="text-sm text-muted-foreground">
+          {isEditing ? "Revisa los cambios antes de guardar." : "Revisa todo antes de generar la cotización."}
+        </p>
       </div>
 
       <Card>
@@ -196,7 +206,13 @@ export function StepSummary() {
 
       <Button size="lg" className="h-14 gap-2 text-base" disabled={generating} onClick={generate}>
         <Send className="size-5" />
-        {generating ? "Generando..." : "Generar cotización"}
+        {generating
+          ? isEditing
+            ? "Guardando..."
+            : "Generando..."
+          : isEditing
+            ? "Guardar cambios"
+            : "Generar cotización"}
       </Button>
 
       <WizardBackButton />

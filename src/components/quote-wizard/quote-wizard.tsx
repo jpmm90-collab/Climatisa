@@ -14,7 +14,7 @@ import {
   loadWizardDraft,
   saveWizardDraft,
 } from "@/lib/quote-wizard/storage";
-import type { QuoteWizardState, WizardStep } from "@/lib/quote-wizard/types";
+import { INITIAL_WIZARD_STATE, type QuoteWizardState, type WizardStep } from "@/lib/quote-wizard/types";
 import { StepClient } from "@/components/quote-wizard/step-client";
 import { StepAreaCount } from "@/components/quote-wizard/step-area-count";
 import { StepArea } from "@/components/quote-wizard/step-area";
@@ -27,8 +27,10 @@ import { WizardProgress } from "@/components/quote-wizard/wizard-progress";
 
 const EMPTY_CATALOGS: QuoteWizardCatalogs = { equipment: [], kits: [], complexities: [] };
 
-export function QuoteWizard() {
-  const [state, setState] = useState<QuoteWizardState>(() => loadWizardDraft());
+export function QuoteWizard({ editQuoteId }: { editQuoteId?: string }) {
+  const [state, setState] = useState<QuoteWizardState>(
+    () => loadWizardDraft(editQuoteId) ?? INITIAL_WIZARD_STATE,
+  );
   const [catalogs, setCatalogs] = useState<QuoteWizardCatalogs>(EMPTY_CATALOGS);
   const [loadingCatalogs, setLoadingCatalogs] = useState(true);
 
@@ -47,7 +49,7 @@ export function QuoteWizard() {
                 phone: data.client.phone,
                 nit: data.client.nit,
               },
-              step: "area-count",
+              step: editQuoteId ? "summary" : "area-count",
             }));
           }
         })
@@ -56,8 +58,67 @@ export function QuoteWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Cargar la cotización existente cuando se edita, solo la primera vez
+  // (si ya hay un borrador de edición en sessionStorage, se usa ese en su
+  // lugar — el usuario puede estar regresando de "Crear cliente").
   useEffect(() => {
-    const wasFresh = !hasWizardDraft();
+    if (!editQuoteId || hasWizardDraft(editQuoteId)) return;
+
+    fetch(`/api/quotes/${editQuoteId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const quote = data?.quote;
+        if (!quote) {
+          toast.error("No se pudo cargar la cotización para editar.");
+          return;
+        }
+        setState((prev) => ({
+          ...prev,
+          step: "summary",
+          client: {
+            id: quote.client.id,
+            name: quote.client.name,
+            phone: quote.client.phone,
+            nit: quote.client.nit,
+          },
+          areaCount: quote.areas.length,
+          currentAreaIndex: 0,
+          areas: quote.areas.map((area: Record<string, unknown>) => ({
+            areaId: crypto.randomUUID(),
+            name: area.name as string,
+            equipmentLines: (area.equipment as Record<string, unknown>[]).map((line) => ({
+              lineId: crypto.randomUUID(),
+              sourceLineId: line.id as string,
+              equipmentId: line.equipmentId as string,
+              equipmentName: line.equipmentNameSnapshot as string,
+              equipmentPrice: line.equipmentPriceSnapshot as number,
+              quantity: line.quantity as number,
+              meters: line.meters as number,
+              complexityId: line.complexityId as string,
+              complexityName: "",
+              complexityAdjustment: line.complexityAdjustmentSnapshot as number,
+              kitId: line.installationKitId as string,
+              kitPrice: line.installationKitPriceSnapshot as number,
+            })),
+          })),
+          extras: quote.extras.map((extra: Record<string, unknown>) => ({
+            extraId: crypto.randomUUID(),
+            description: extra.description as string,
+            price: extra.price as number,
+          })),
+          depositPercentage: quote.depositPercentage,
+          discountType: quote.discountType,
+          discountValue: quote.discountValue,
+          additionalDescription: quote.additionalDescription ?? "",
+          installationNotesExtra: quote.installationNotesExtra ?? "",
+        }));
+      })
+      .catch(() => toast.error("No se pudo cargar la cotización para editar."));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editQuoteId]);
+
+  useEffect(() => {
+    const wasFresh = !hasWizardDraft(editQuoteId);
 
     Promise.all([
       fetch("/api/equipment").then((r) => r.json()),
@@ -69,15 +130,43 @@ export function QuoteWizard() {
         // Las rutas /api/equipment, /api/installation-kits y /api/complexities
         // ya serializan los campos Decimal a number (ver src/lib/serializers.ts)
         // — no hay que volver a convertir aquí.
+        const complexities = (complexitiesRes.complexities ?? []).filter(
+          (c: { active: boolean }) => c.active,
+        );
         setCatalogs({
           equipment: (equipmentRes.equipment ?? []).filter((e: { active: boolean }) => e.active),
           kits: (kitsRes.kits ?? []).filter((k: { active: boolean }) => k.active),
-          complexities: (complexitiesRes.complexities ?? []).filter((c: { active: boolean }) => c.active),
+          complexities,
         });
 
+        // Solo aplicar el porcentaje de anticipo por defecto en una
+        // cotización NUEVA sin borrador previo — al editar, el porcentaje
+        // ya guardado siempre gana.
         const defaultDeposit = settingsRes.settings?.defaultDepositPercentage;
-        if (wasFresh && defaultDeposit != null) {
+        if (wasFresh && !editQuoteId && defaultDeposit != null) {
           setState((prev) => ({ ...prev, depositPercentage: defaultDeposit }));
+        }
+
+        // Completar el nombre de complejidad (solo para mostrar en las
+        // tarjetas del asistente) en las líneas cargadas al editar — no
+        // afecta el precio, que ya viene fijo en complexityAdjustment.
+        if (complexities.length > 0) {
+          setState((prev) => ({
+            ...prev,
+            areas: prev.areas.map((area) => ({
+              ...area,
+              equipmentLines: area.equipmentLines.map((line) =>
+                line.complexityName
+                  ? line
+                  : {
+                      ...line,
+                      complexityName:
+                        complexities.find((c: { id: string }) => c.id === line.complexityId)?.name ??
+                        "",
+                    },
+              ),
+            })),
+          }));
         }
       })
       .catch(() => toast.error("No se pudieron cargar los catálogos. Intenta de nuevo."))
@@ -86,15 +175,23 @@ export function QuoteWizard() {
   }, []);
 
   useEffect(() => {
-    saveWizardDraft(state);
-  }, [state]);
+    saveWizardDraft(state, editQuoteId);
+  }, [state, editQuoteId]);
 
   const update = (patch: Partial<QuoteWizardState>) => setState((prev) => ({ ...prev, ...patch }));
 
   const goNext = () => setState((prev) => ({ ...prev, step: nextStep(prev) }));
   const goBack = () => setState((prev) => ({ ...prev, step: previousStep(prev) }));
 
-  const value: QuoteWizardContextValue = { state, update, goNext, goBack, catalogs, loadingCatalogs };
+  const value: QuoteWizardContextValue = {
+    state,
+    update,
+    goNext,
+    goBack,
+    catalogs,
+    loadingCatalogs,
+    editQuoteId,
+  };
 
   return (
     <QuoteWizardContext.Provider value={value}>
@@ -171,6 +268,6 @@ function previousStep(state: QuoteWizardState): WizardStep {
   }
 }
 
-export function resetWizard() {
-  clearWizardDraft();
+export function resetWizard(editQuoteId?: string) {
+  clearWizardDraft(editQuoteId);
 }

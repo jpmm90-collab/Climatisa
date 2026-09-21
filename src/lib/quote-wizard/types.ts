@@ -9,6 +9,13 @@ export interface WizardClient {
 
 export interface WizardEquipmentLine {
   lineId: string;
+  // Presente solo cuando la línea viene sin tocar de una cotización que se
+  // está editando (id de QuoteAreaEquipment). Su presencia le dice al
+  // servidor "conserva el snapshot exacto, no recalcules" (sección 43).
+  // Si el usuario quita esta línea y agrega una nueva, la nueva línea nace
+  // sin sourceLineId — se recalcula con precios vigentes, como cualquier
+  // línea nueva.
+  sourceLineId?: string;
   equipmentId: string;
   equipmentName: string;
   equipmentPrice: number;
