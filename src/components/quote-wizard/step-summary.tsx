@@ -30,39 +30,49 @@ export function StepSummary() {
     if (!state.client) return;
     setGenerating(true);
 
-    const response = await fetch("/api/quotes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientId: state.client.id,
-        areas: state.areas.map((area) => ({
-          name: area.name,
-          equipmentLines: area.equipmentLines.map((line) => ({
-            equipmentId: line.equipmentId,
-            quantity: line.quantity,
-            meters: line.meters,
-            complexityId: line.complexityId,
+    try {
+      const response = await fetch("/api/quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: state.client.id,
+          areas: state.areas.map((area) => ({
+            name: area.name,
+            equipmentLines: area.equipmentLines.map((line) => ({
+              equipmentId: line.equipmentId,
+              quantity: line.quantity,
+              meters: line.meters,
+              complexityId: line.complexityId,
+            })),
           })),
-        })),
-        extras: state.extras.map((extra) => ({ description: extra.description, price: extra.price })),
-        discountType: state.discountType,
-        discountValue: state.discountValue,
-        depositPercentage: state.depositPercentage,
-        additionalDescription: state.additionalDescription,
-      }),
-    });
+          extras: state.extras.map((extra) => ({ description: extra.description, price: extra.price })),
+          discountType: state.discountType,
+          discountValue: state.discountValue,
+          depositPercentage: state.depositPercentage,
+          additionalDescription: state.additionalDescription,
+        }),
+      });
 
-    if (!response.ok) {
-      const data = await response.json().catch(() => null);
-      toast.error(data?.error ?? "No se pudo generar la cotización");
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        toast.error(data?.error ?? "No se pudo generar la cotización. Tus datos siguen aquí, intenta de nuevo.");
+        return;
+      }
+
+      const { quote: created } = await response.json();
+      resetWizard();
+      toast.success(`Cotización ${created.quoteNumber} generada`);
+      router.push(`/cotizaciones/${created.id}`);
+    } catch {
+      // Sin conexión, tiempo de espera agotado, etc. — el borrador NO se
+      // borra (solo se limpia tras una respuesta exitosa del servidor), así
+      // que los datos ya ingresados no se pierden. Avisar claramente en vez
+      // de fallar en silencio (skill, sección PWA: "si no hay conexión,
+      // decirlo claramente").
+      toast.error("No se pudo conectar. Revisa tu conexión e intenta de nuevo — no perdiste nada.");
+    } finally {
       setGenerating(false);
-      return;
     }
-
-    const { quote: created } = await response.json();
-    resetWizard();
-    toast.success(`Cotización ${created.quoteNumber} generada`);
-    router.push(`/cotizaciones/${created.id}`);
   };
 
   return (
