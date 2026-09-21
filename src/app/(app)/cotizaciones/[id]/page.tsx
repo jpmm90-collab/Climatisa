@@ -7,9 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, MessageCircle } from "lucide-react";
 import { EditQuoteButton } from "@/components/quotes/edit-quote-button";
 import { QuoteStatusActions } from "@/components/quotes/quote-status-actions";
+import { buildWhatsAppShareUrl } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -23,16 +24,25 @@ const STATUS_LABELS: Record<string, string> = {
 export default async function VerCotizacionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const record = await prisma.quote.findUnique({
-    where: { id },
-    include: { client: true, areas: { include: { equipment: true } }, extras: true },
-  });
+  const [record, companySettings] = await Promise.all([
+    prisma.quote.findUnique({
+      where: { id },
+      include: { client: true, areas: { include: { equipment: true } }, extras: true },
+    }),
+    prisma.companySettings.findFirst(),
+  ]);
 
   if (!record) {
     notFound();
   }
 
   const quote = serializeQuote(record);
+  const whatsAppUrl = buildWhatsAppShareUrl({
+    clientName: quote.client.name,
+    clientPhone: quote.client.phone,
+    quoteNumber: quote.quoteNumber,
+    companyName: companySettings?.companyName ?? "",
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -146,6 +156,15 @@ export default async function VerCotizacionPage({ params }: { params: Promise<{ 
         <a href={`/api/quotes/${quote.id}/pdf`} target="_blank" rel="noopener noreferrer">
           <Download className="size-5" />
           Descargar PDF
+        </a>
+      </Button>
+
+      {/* Solo un link wa.me con mensaje prellenado (skill, sección 43) —
+          nada de WhatsApp Business API, el PDF no se adjunta automático. */}
+      <Button asChild size="lg" variant="secondary" className="h-14 gap-2 text-base">
+        <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer">
+          <MessageCircle className="size-5" />
+          Compartir por WhatsApp
         </a>
       </Button>
 
