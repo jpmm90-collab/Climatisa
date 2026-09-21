@@ -3,13 +3,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireSession } from "@/lib/auth-guard";
 import { complexitySchema } from "@/lib/validations/complexity";
+import { serializeComplexity } from "@/lib/serializers";
 
 export async function GET() {
   const { error } = await requireSession();
   if (error) return error;
 
   const complexities = await prisma.complexity.findMany({ orderBy: { level: "asc" } });
-  return NextResponse.json({ complexities });
+  return NextResponse.json({ complexities: complexities.map(serializeComplexity) });
 }
 
 export async function POST(request: NextRequest) {
@@ -32,5 +33,5 @@ export async function POST(request: NextRequest) {
   }
 
   const complexity = await prisma.complexity.create({ data: parsed.data });
-  return NextResponse.json({ complexity }, { status: 201 });
+  return NextResponse.json({ complexity: serializeComplexity(complexity) }, { status: 201 });
 }

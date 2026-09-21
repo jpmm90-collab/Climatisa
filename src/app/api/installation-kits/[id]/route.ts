@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-guard";
 import { installationKitSchema } from "@/lib/validations/installation-kit";
 import { findOverlappingKitRanges, type InstallationKitRange } from "@/lib/pricing/kit-selection";
+import { serializeInstallationKit } from "@/lib/serializers";
+import { toNullableNumber, toNumber } from "@/lib/decimal";
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const { error } = await requireAdmin();
@@ -32,9 +34,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const overlaps = findOverlappingKitRanges([
       ...others.map((k) => ({
         id: k.id,
-        minMeters: Number(k.minMeters),
-        maxMeters: k.maxMeters === null ? null : Number(k.maxMeters),
-        price: Number(k.price),
+        minMeters: toNumber(k.minMeters),
+        maxMeters: toNullableNumber(k.maxMeters),
+        price: toNumber(k.price),
         active: k.active,
       })),
       candidate,
@@ -53,5 +55,5 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     data: parsed.data,
   });
 
-  return NextResponse.json({ kit });
+  return NextResponse.json({ kit: serializeInstallationKit(kit) });
 }

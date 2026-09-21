@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-guard";
 import { equipmentSchema } from "@/lib/validations/equipment";
+import { serializeEquipment } from "@/lib/serializers";
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const { error } = await requireAdmin();
@@ -28,5 +29,5 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     data: parsed.data,
   });
 
-  return NextResponse.json({ equipment });
+  return NextResponse.json({ equipment: serializeEquipment(equipment) });
 }

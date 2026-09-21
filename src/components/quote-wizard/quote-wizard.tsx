@@ -66,28 +66,18 @@ export function QuoteWizard() {
       fetch("/api/company-settings").then((r) => r.json()),
     ])
       .then(([equipmentRes, kitsRes, complexitiesRes, settingsRes]) => {
-        // Prisma serializa los campos Decimal como string en JSON — convertir
-        // a number aquí, igual que en las pantallas de administración.
+        // Las rutas /api/equipment, /api/installation-kits y /api/complexities
+        // ya serializan los campos Decimal a number (ver src/lib/serializers.ts)
+        // — no hay que volver a convertir aquí.
         setCatalogs({
-          equipment: (equipmentRes.equipment ?? [])
-            .filter((e: { active: boolean }) => e.active)
-            .map((e: { price: string }) => ({ ...e, price: Number(e.price) })),
-          kits: (kitsRes.kits ?? [])
-            .filter((k: { active: boolean }) => k.active)
-            .map((k: { minMeters: string; maxMeters: string | null; price: string }) => ({
-              ...k,
-              minMeters: Number(k.minMeters),
-              maxMeters: k.maxMeters === null ? null : Number(k.maxMeters),
-              price: Number(k.price),
-            })),
-          complexities: (complexitiesRes.complexities ?? [])
-            .filter((c: { active: boolean }) => c.active)
-            .map((c: { adjustment: string }) => ({ ...c, adjustment: Number(c.adjustment) })),
+          equipment: (equipmentRes.equipment ?? []).filter((e: { active: boolean }) => e.active),
+          kits: (kitsRes.kits ?? []).filter((k: { active: boolean }) => k.active),
+          complexities: (complexitiesRes.complexities ?? []).filter((c: { active: boolean }) => c.active),
         });
 
         const defaultDeposit = settingsRes.settings?.defaultDepositPercentage;
         if (wasFresh && defaultDeposit != null) {
-          setState((prev) => ({ ...prev, depositPercentage: Number(defaultDeposit) }));
+          setState((prev) => ({ ...prev, depositPercentage: defaultDeposit }));
         }
       })
       .catch(() => toast.error("No se pudieron cargar los catálogos. Intenta de nuevo."))

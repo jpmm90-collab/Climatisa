@@ -75,19 +75,12 @@ export function KitsTable({ initialKits }: { initialKits: KitRow[] }) {
     }
 
     const { kit: saved } = await response.json();
-    const normalized: KitRow = {
-      id: saved.id,
-      minMeters: Number(saved.minMeters),
-      maxMeters: saved.maxMeters === null ? null : Number(saved.maxMeters),
-      price: Number(saved.price),
-      active: saved.active,
-    };
 
     setKits((prev) => {
       if (editing) {
-        return prev.map((item) => (item.id === normalized.id ? normalized : item));
+        return prev.map((item) => (item.id === saved.id ? saved : item));
       }
-      return [...prev, normalized].sort((a, b) => a.minMeters - b.minMeters);
+      return [...prev, saved].sort((a, b) => a.minMeters - b.minMeters);
     });
 
     toast.success("Kit guardado");

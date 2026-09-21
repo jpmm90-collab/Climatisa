@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { KitsTable } from "@/components/admin/kits-table";
+import { serializeInstallationKit } from "@/lib/serializers";
 
 export const dynamic = "force-dynamic";
 
@@ -20,15 +21,7 @@ export default async function KitsAdminPage() {
         <p className="text-sm text-muted-foreground">Rangos de metros y su precio de kit.</p>
       </div>
 
-      <KitsTable
-        initialKits={kits.map((kit) => ({
-          id: kit.id,
-          minMeters: Number(kit.minMeters),
-          maxMeters: kit.maxMeters === null ? null : Number(kit.maxMeters),
-          price: Number(kit.price),
-          active: kit.active,
-        }))}
-      />
+      <KitsTable initialKits={kits.map(serializeInstallationKit)} />
     </div>
   );
 }

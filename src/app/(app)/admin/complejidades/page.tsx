@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { ComplexityTable } from "@/components/admin/complexity-table";
+import { serializeComplexity } from "@/lib/serializers";
 
 export const dynamic = "force-dynamic";
 
@@ -20,16 +21,7 @@ export default async function ComplejidadesAdminPage() {
         <p className="text-sm text-muted-foreground">Niveles de dificultad de instalación.</p>
       </div>
 
-      <ComplexityTable
-        initialComplexities={complexities.map((item) => ({
-          id: item.id,
-          level: item.level,
-          name: item.name,
-          description: item.description,
-          adjustment: Number(item.adjustment),
-          active: item.active,
-        }))}
-      />
+      <ComplexityTable initialComplexities={complexities.map(serializeComplexity)} />
     </div>
   );
 }

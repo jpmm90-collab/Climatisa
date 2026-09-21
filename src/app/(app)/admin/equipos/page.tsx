@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { EquipmentTable } from "@/components/admin/equipment-table";
+import { serializeEquipment } from "@/lib/serializers";
 
 export const dynamic = "force-dynamic";
 
@@ -20,18 +21,7 @@ export default async function EquiposAdminPage() {
         <p className="text-sm text-muted-foreground">Catálogo de equipos y sus precios.</p>
       </div>
 
-      <EquipmentTable
-        initialEquipment={equipment.map((item) => ({
-          id: item.id,
-          name: item.name,
-          brand: item.brand,
-          model: item.model,
-          btu: item.btu,
-          type: item.type,
-          price: Number(item.price),
-          active: item.active,
-        }))}
-      />
+      <EquipmentTable initialEquipment={equipment.map(serializeEquipment)} />
     </div>
   );
 }

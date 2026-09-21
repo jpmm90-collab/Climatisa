@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-guard";
 import { complexitySchema } from "@/lib/validations/complexity";
+import { serializeComplexity } from "@/lib/serializers";
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const { error } = await requireAdmin();
@@ -35,5 +36,5 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     data: parsed.data,
   });
 
-  return NextResponse.json({ complexity });
+  return NextResponse.json({ complexity: serializeComplexity(complexity) });
 }

@@ -3,13 +3,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireSession } from "@/lib/auth-guard";
 import { equipmentSchema } from "@/lib/validations/equipment";
+import { serializeEquipment } from "@/lib/serializers";
 
 export async function GET() {
   const { error } = await requireSession();
   if (error) return error;
 
   const equipment = await prisma.equipment.findMany({ orderBy: { name: "asc" } });
-  return NextResponse.json({ equipment });
+  return NextResponse.json({ equipment: equipment.map(serializeEquipment) });
 }
 
 export async function POST(request: NextRequest) {
@@ -27,5 +28,5 @@ export async function POST(request: NextRequest) {
   }
 
   const equipment = await prisma.equipment.create({ data: parsed.data });
-  return NextResponse.json({ equipment }, { status: 201 });
+  return NextResponse.json({ equipment: serializeEquipment(equipment) }, { status: 201 });
 }

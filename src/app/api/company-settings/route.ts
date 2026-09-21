@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth-guard";
+import { serializeCompanySettings } from "@/lib/serializers";
 
 // Solo lectura por ahora: la administración de CompanySettings (Fase 6,
 // "administración de parámetros") todavía no está construida. El cotizador
@@ -10,5 +11,5 @@ export async function GET() {
   if (error) return error;
 
   const settings = await prisma.companySettings.findFirst();
-  return NextResponse.json({ settings });
+  return NextResponse.json({ settings: settings ? serializeCompanySettings(settings) : null });
 }

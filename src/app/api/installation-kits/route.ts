@@ -4,13 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireSession } from "@/lib/auth-guard";
 import { installationKitSchema } from "@/lib/validations/installation-kit";
 import { findOverlappingKitRanges, type InstallationKitRange } from "@/lib/pricing/kit-selection";
+import { serializeInstallationKit } from "@/lib/serializers";
+import { toNullableNumber, toNumber } from "@/lib/decimal";
 
 export async function GET() {
   const { error } = await requireSession();
   if (error) return error;
 
   const kits = await prisma.installationKit.findMany({ orderBy: { minMeters: "asc" } });
-  return NextResponse.json({ kits });
+  return NextResponse.json({ kits: kits.map(serializeInstallationKit) });
 }
 
 export async function POST(request: NextRequest) {
@@ -33,9 +35,9 @@ export async function POST(request: NextRequest) {
     const overlaps = findOverlappingKitRanges([
       ...existing.map((k) => ({
         id: k.id,
-        minMeters: Number(k.minMeters),
-        maxMeters: k.maxMeters === null ? null : Number(k.maxMeters),
-        price: Number(k.price),
+        minMeters: toNumber(k.minMeters),
+        maxMeters: toNullableNumber(k.maxMeters),
+        price: toNumber(k.price),
         active: k.active,
       })),
       candidate,
@@ -50,5 +52,5 @@ export async function POST(request: NextRequest) {
   }
 
   const kit = await prisma.installationKit.create({ data: parsed.data });
-  return NextResponse.json({ kit }, { status: 201 });
+  return NextResponse.json({ kit: serializeInstallationKit(kit) }, { status: 201 });
 }

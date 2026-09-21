@@ -72,9 +72,9 @@ export function EquipmentTable({ initialEquipment }: { initialEquipment: Equipme
     const { equipment: saved } = await response.json();
     setEquipment((prev) => {
       if (editing) {
-        return prev.map((item) => (item.id === saved.id ? { ...saved, price: Number(saved.price) } : item));
+        return prev.map((item) => (item.id === saved.id ? saved : item));
       }
-      return [...prev, { ...saved, price: Number(saved.price) }].sort((a, b) => a.name.localeCompare(b.name));
+      return [...prev, saved].sort((a, b) => a.name.localeCompare(b.name));
     });
 
     toast.success("Equipo guardado");

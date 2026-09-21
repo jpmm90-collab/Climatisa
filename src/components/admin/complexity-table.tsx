@@ -76,13 +76,12 @@ export function ComplexityTable({ initialComplexities }: { initialComplexities: 
     }
 
     const { complexity: saved } = await response.json();
-    const normalized: ComplexityRow = { ...saved, adjustment: Number(saved.adjustment) };
 
     setComplexities((prev) => {
       if (editing) {
-        return prev.map((item) => (item.id === normalized.id ? normalized : item));
+        return prev.map((item) => (item.id === saved.id ? saved : item));
       }
-      return [...prev, normalized].sort((a, b) => a.level - b.level);
+      return [...prev, saved].sort((a, b) => a.level - b.level);
     });
 
     toast.success("Complejidad guardada");
