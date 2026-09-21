@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AirVent, Ruler, Gauge } from "lucide-react";
+import { AirVent, Ruler, Gauge, Building2 } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 
@@ -37,6 +37,13 @@ export default async function AdminPage() {
           <Link href="/admin/complejidades">
             <Gauge className="size-6" />
             Complejidades
+          </Link>
+        </Button>
+
+        <Button asChild size="lg" variant="secondary" className="h-16 justify-start gap-3 text-base">
+          <Link href="/admin/empresa">
+            <Building2 className="size-6" />
+            Datos de la empresa
           </Link>
         </Button>
       </div>

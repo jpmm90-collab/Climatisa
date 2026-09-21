@@ -2,13 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { FieldCharCount } from "@/components/ui/field-char-count";
 import { useQuoteWizard } from "@/components/quote-wizard/context";
 import { WizardBackButton } from "@/components/quote-wizard/wizard-back-button";
 import { TEXT_LIMITS } from "@/lib/constants";
 
 export function StepAdditionalDescription() {
   const { state, update, goNext } = useQuoteWizard();
+  const overLimit = state.additionalDescription.length > TEXT_LIMITS.additionalDescription;
 
   return (
     <div className="flex flex-col gap-4">
@@ -24,16 +26,14 @@ export function StepAdditionalDescription() {
         <Textarea
           id="additional-description"
           rows={6}
-          maxLength={TEXT_LIMITS.additionalDescription}
           value={state.additionalDescription}
           onChange={(e) => update({ additionalDescription: e.target.value })}
         />
-        <FieldDescription>
-          {state.additionalDescription.length}/{TEXT_LIMITS.additionalDescription}
-        </FieldDescription>
+        <FieldCharCount value={state.additionalDescription} limit={TEXT_LIMITS.additionalDescription} />
+        {overLimit ? <FieldError>Acorta el texto antes de continuar.</FieldError> : null}
       </Field>
 
-      <Button size="lg" className="h-14 text-base" onClick={goNext}>
+      <Button size="lg" className="h-14 text-base" disabled={overLimit} onClick={goNext}>
         Continuar
       </Button>
 

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
+import { FieldCharCount } from "@/components/ui/field-char-count";
 import { useQuoteWizard } from "@/components/quote-wizard/context";
 import { WizardBackButton } from "@/components/quote-wizard/wizard-back-button";
 import { formatCurrency } from "@/lib/format";
@@ -19,7 +20,8 @@ export function StepExtras() {
   const addExtra = () => {
     const trimmed = description.trim();
     const priceValue = Number(price);
-    if (!trimmed || !Number.isFinite(priceValue) || priceValue < 0) return;
+    if (!trimmed || trimmed.length > TEXT_LIMITS.extraDescription) return;
+    if (!Number.isFinite(priceValue) || priceValue < 0) return;
 
     update({
       extras: [...state.extras, { extraId: crypto.randomUUID(), description: trimmed, price: priceValue }],
@@ -73,10 +75,10 @@ export function StepExtras() {
             <Input
               id="extra-description"
               placeholder="Canaleta especial"
-              maxLength={TEXT_LIMITS.extraDescription}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+            <FieldCharCount value={description} limit={TEXT_LIMITS.extraDescription} />
           </Field>
           <Field>
             <FieldLabel htmlFor="extra-price">Precio (Q)</FieldLabel>
@@ -94,7 +96,7 @@ export function StepExtras() {
             variant="secondary"
             className="gap-2"
             onClick={addExtra}
-            disabled={!description.trim() || !price}
+            disabled={!description.trim() || description.length > TEXT_LIMITS.extraDescription || !price}
           >
             <Plus className="size-4" />
             Agregar otro

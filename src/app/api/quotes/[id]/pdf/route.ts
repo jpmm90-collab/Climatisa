@@ -5,8 +5,14 @@ import { toNumber } from "@/lib/decimal";
 import { renderQuotePdf } from "@/lib/pdf/render-quote-pdf";
 import type { QuotePdfData } from "@/lib/pdf/types";
 
-// Ver/generar el PDF siempre lee los snapshots guardados, nunca recalcula
-// con precios vigentes (sección 43: "ver = histórico").
+// Ver/generar el PDF siempre lee los snapshots guardados de precios, nunca
+// recalcula (sección 43: "ver = histórico"). CompanySettings es la única
+// excepción deliberada: nombre, logo, contacto y condiciones comerciales se
+// leen SIEMPRE en vivo, sin snapshot por cotización. Decisión confirmada
+// explícitamente con el usuario — la sección 43 solo nombra snapshot para
+// precios de equipo/kit/complejidad; si la empresa corrige un teléfono o
+// dirección, todas las cotizaciones (viejas y nuevas) deben mostrar el dato
+// correcto en vez de perpetuar un error.
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   const { error } = await requireSession();
   if (error) return error;

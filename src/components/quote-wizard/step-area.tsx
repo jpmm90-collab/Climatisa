@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
+import { FieldCharCount } from "@/components/ui/field-char-count";
 import { useQuoteWizard } from "@/components/quote-wizard/context";
 import { WizardBackButton } from "@/components/quote-wizard/wizard-back-button";
 import { EquipmentLineDialog } from "@/components/quote-wizard/equipment-line-dialog";
 import { calculateLineTotal } from "@/lib/pricing/engine";
 import { formatCurrency } from "@/lib/format";
+import { TEXT_LIMITS } from "@/lib/constants";
 import type { WizardArea } from "@/lib/quote-wizard/types";
 
 export function StepArea() {
@@ -30,7 +32,8 @@ export function StepArea() {
     updateArea({ equipmentLines: area.equipmentLines.filter((line) => line.lineId !== lineId) });
   };
 
-  const canContinue = area.name.trim().length > 0 && area.equipmentLines.length > 0;
+  const nameOverLimit = area.name.length > TEXT_LIMITS.areaName;
+  const canContinue = area.name.trim().length > 0 && !nameOverLimit && area.equipmentLines.length > 0;
 
   const goToArea = (index: number) => update({ currentAreaIndex: index, step: "area" });
 
@@ -70,6 +73,7 @@ export function StepArea() {
           value={area.name}
           onChange={(e) => updateArea({ name: e.target.value })}
         />
+        <FieldCharCount value={area.name} limit={TEXT_LIMITS.areaName} />
       </Field>
 
       <div className="flex flex-col gap-2">

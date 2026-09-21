@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldLabel } from "@/components/ui/field";
+import { FieldCharCount } from "@/components/ui/field-char-count";
 import { useQuoteWizard } from "@/components/quote-wizard/context";
 import { WizardBackButton } from "@/components/quote-wizard/wizard-back-button";
 import { resetWizard } from "@/components/quote-wizard/quote-wizard";
@@ -22,6 +23,7 @@ export function StepSummary() {
   const quote = deriveQuote(state);
   const [generating, setGenerating] = useState(false);
   const isEditing = Boolean(editQuoteId);
+  const overTextLimit = state.installationNotesExtra.length > TEXT_LIMITS.installationNotesExtra;
 
   const startOver = () => {
     resetWizard(editQuoteId);
@@ -145,10 +147,10 @@ export function StepSummary() {
               id="installation-notes-extra"
               rows={2}
               placeholder="Agregar información adicional..."
-              maxLength={TEXT_LIMITS.installationNotesExtra}
               value={state.installationNotesExtra}
               onChange={(e) => update({ installationNotesExtra: e.target.value })}
             />
+            <FieldCharCount value={state.installationNotesExtra} limit={TEXT_LIMITS.installationNotesExtra} />
           </Field>
         </CardContent>
       </Card>
@@ -204,7 +206,7 @@ export function StepSummary() {
         </CardContent>
       </Card>
 
-      <Button size="lg" className="h-14 gap-2 text-base" disabled={generating} onClick={generate}>
+      <Button size="lg" className="h-14 gap-2 text-base" disabled={generating || overTextLimit} onClick={generate}>
         <Send className="size-5" />
         {generating
           ? isEditing
