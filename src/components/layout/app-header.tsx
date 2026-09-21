@@ -25,7 +25,7 @@ export async function AppHeader() {
             alt="Climatisa"
             width={36}
             height={36}
-            className="rounded-md"
+            className="size-9 rounded-md"
             priority
           />
           <span className="text-base font-semibold">Climatisa</span>

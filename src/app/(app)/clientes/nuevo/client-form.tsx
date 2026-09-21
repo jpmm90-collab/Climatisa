@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from "@/components/ui/field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { clientSchema, type ClientInput } from "@/lib/validations/client";
+import { setPendingSelectedClientId } from "@/lib/quote-wizard/storage";
 
 export function ClientForm({ returnTo }: { returnTo: string }) {
   const router = useRouter();
@@ -37,6 +38,12 @@ export function ClientForm({ returnTo }: { returnTo: string }) {
     if (!response.ok) {
       setServerError("No se pudo guardar el cliente. Intenta de nuevo.");
       return;
+    }
+
+    const { client } = await response.json();
+
+    if (returnTo.startsWith("/cotizaciones/nueva")) {
+      setPendingSelectedClientId(client.id);
     }
 
     toast.success("Cliente guardado");

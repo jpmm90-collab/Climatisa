@@ -22,7 +22,7 @@ export default async function LoginPage() {
             alt="Climatisa"
             width={72}
             height={72}
-            className="rounded-xl"
+            className="size-[72px] rounded-xl"
             priority
           />
           <h1 className="text-xl font-semibold">Climatisa</h1>
