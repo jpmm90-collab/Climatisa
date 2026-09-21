@@ -36,6 +36,16 @@ export const createQuoteSchema = z.object({
     .max(TEXT_LIMITS.additionalDescription)
     .optional()
     .or(z.literal("")),
+  // Aclaración opcional aparte del texto base obligatorio de instalación
+  // (sección 19.5) — el texto base nunca viaja en el payload, es una
+  // constante del servidor (INSTALLATION_BASE_TEXT), nunca algo que el
+  // cliente pueda sobreescribir.
+  installationNotesExtra: z
+    .string()
+    .trim()
+    .max(TEXT_LIMITS.installationNotesExtra)
+    .optional()
+    .or(z.literal("")),
 });
 
 export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;

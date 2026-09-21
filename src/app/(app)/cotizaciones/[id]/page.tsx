@@ -2,10 +2,12 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { serializeQuote } from "@/lib/serializers";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { VENDEDOR_RESPONSABLE } from "@/lib/constants";
+import { INSTALLATION_BASE_TEXT, VENDEDOR_RESPONSABLE } from "@/lib/constants";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +75,18 @@ export default async function VerCotizacionPage({ params }: { params: Promise<{ 
         ))}
       </div>
 
+      <Card>
+        <CardContent className="flex flex-col gap-2 py-4">
+          <p className="font-medium">Instalación</p>
+          <p className="text-sm text-muted-foreground">{INSTALLATION_BASE_TEXT}</p>
+          {quote.installationNotesExtra ? (
+            <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+              {quote.installationNotesExtra}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
       {quote.extras.length > 0 ? (
         <Card>
           <CardContent className="flex flex-col gap-2 py-4">
@@ -125,6 +139,13 @@ export default async function VerCotizacionPage({ params }: { params: Promise<{ 
           </div>
         </CardContent>
       </Card>
+
+      <Button asChild size="lg" className="h-14 gap-2 text-base">
+        <a href={`/api/quotes/${quote.id}/pdf`} target="_blank" rel="noopener noreferrer">
+          <Download className="size-5" />
+          Descargar PDF
+        </a>
+      </Button>
     </div>
   );
 }

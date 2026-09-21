@@ -54,6 +54,10 @@ export interface QuoteWizardState {
   discountType: DiscountType;
   discountValue: number;
   additionalDescription: string;
+  // Texto adicional de instalación (sección 19.5), SEPARADO del texto base
+  // obligatorio (INSTALLATION_BASE_TEXT) — nunca lo reemplaza ni lo toca,
+  // el usuario solo puede agregar una aclaración aparte.
+  installationNotesExtra: string;
 }
 
 export const INITIAL_WIZARD_STATE: QuoteWizardState = {
@@ -67,4 +71,5 @@ export const INITIAL_WIZARD_STATE: QuoteWizardState = {
   discountType: "PERCENTAGE",
   discountValue: 0,
   additionalDescription: "",
+  installationNotesExtra: "",
 };

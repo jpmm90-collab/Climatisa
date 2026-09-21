@@ -7,15 +7,17 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { useQuoteWizard } from "@/components/quote-wizard/context";
 import { WizardBackButton } from "@/components/quote-wizard/wizard-back-button";
 import { resetWizard } from "@/components/quote-wizard/quote-wizard";
 import { deriveQuote } from "@/lib/quote-wizard/derive";
 import { formatCurrency } from "@/lib/format";
-import { VENDEDOR_RESPONSABLE } from "@/lib/constants";
+import { INSTALLATION_BASE_TEXT, TEXT_LIMITS, VENDEDOR_RESPONSABLE } from "@/lib/constants";
 
 export function StepSummary() {
-  const { state } = useQuoteWizard();
+  const { state, update } = useQuoteWizard();
   const router = useRouter();
   const quote = deriveQuote(state);
   const [generating, setGenerating] = useState(false);
@@ -50,6 +52,7 @@ export function StepSummary() {
           discountValue: state.discountValue,
           depositPercentage: state.depositPercentage,
           additionalDescription: state.additionalDescription,
+          installationNotesExtra: state.installationNotesExtra,
         }),
       });
 
@@ -117,6 +120,28 @@ export function StepSummary() {
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardContent className="flex flex-col gap-3 py-4">
+          <p className="font-medium">Instalación</p>
+          {/* Texto base obligatorio (sección 19.5): siempre presente, no editable.
+              El usuario solo puede agregar una aclaración aparte, nunca tocar este texto. */}
+          <p className="text-sm text-muted-foreground">{INSTALLATION_BASE_TEXT}</p>
+          <Field>
+            <FieldLabel htmlFor="installation-notes-extra">
+              Información adicional sobre la instalación (opcional)
+            </FieldLabel>
+            <Textarea
+              id="installation-notes-extra"
+              rows={2}
+              placeholder="Agregar información adicional..."
+              maxLength={TEXT_LIMITS.installationNotesExtra}
+              value={state.installationNotesExtra}
+              onChange={(e) => update({ installationNotesExtra: e.target.value })}
+            />
+          </Field>
+        </CardContent>
+      </Card>
 
       {state.extras.length > 0 ? (
         <Card>

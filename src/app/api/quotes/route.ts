@@ -141,6 +141,7 @@ export async function POST(request: NextRequest) {
             depositAmount,
             balance,
             additionalDescription: input.additionalDescription || null,
+            installationNotesExtra: input.installationNotesExtra || null,
             areas: {
               create: areaInputs.map((area) => ({
                 name: area.name,
