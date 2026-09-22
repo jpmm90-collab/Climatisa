@@ -1,19 +1,32 @@
 # Estado del proyecto — Climatisa Cotizador
 
-Última actualización: 2026-09-22. Este documento se generó auditando el
-repo real (git log, git status, typecheck, lint, test, build, y una
-revisión directa del código) en vez de reconstruirse de memoria — donde el
-estado real difería de lo esperado, se corrigió aquí en vez de copiarlo.
+Última actualización: 2026-09-22 (segunda auditoría del día). Este
+documento se generó/actualizó auditando el estado real **en producción**,
+no de memoria ni copiando la versión anterior de este archivo: cada
+afirmación se verificó en vivo (base de datos real de Railway, Vercel CLI,
+navegador real contra el dominio de producción) antes de escribirse. Donde
+la versión anterior de este documento decía algo distinto a lo encontrado,
+se corrigió aquí en vez de dejarlo contradictorio.
 
-**Deploy en producción: LISTO Y VERIFICADO, con dominio propio.**
-[https://cotizador.chambeadora.com](https://cotizador.chambeadora.com) —
-login real, lectura y escritura contra Railway confirmadas en vivo el
-2026-09-22 (ver sección 5). El dominio base **no es climatisa.com, es
-chambeadora.com** (dominio propio del product owner, ya en Cloudflare) —
-ojo con esto, es fácil asumir climatisa.com por el nombre del proyecto.
-`https://climatisa.vercel.app` (el subdominio `.vercel.app` por defecto)
-sigue funcionando como respaldo. Diagnóstico completo del proceso de
-arreglar el deploy roto en el historial de commits `edbe5ba`..`90b880c`.
+**Deploy en producción: LISTO Y VERIFICADO END-TO-END, con dominio
+propio.** [https://cotizador.chambeadora.com](https://cotizador.chambeadora.com)
+— login, crear cliente, crear cotización con área, **generar PDF** y
+**botón de WhatsApp** confirmados en vivo el 2026-09-22 con datos de
+prueba creados y luego eliminados de la base real (ver sección 5, punto 6).
+El dominio base **no es climatisa.com, es chambeadora.com** (dominio
+propio del product owner, ya en Cloudflare) — ojo con esto, es fácil
+asumir climatisa.com por el nombre del proyecto. `https://climatisa.vercel.app`
+(el subdominio `.vercel.app` por defecto) sigue funcionando como respaldo.
+
+**Corrección importante sobre la verificación anterior:** la sesión
+previa (que dejó este documento en "LISTO Y VERIFICADO") solo había
+probado login, lectura y escritura de un cliente — **nunca probó
+generar un PDF ni el botón de WhatsApp en producción**. Esta auditoría sí
+los probó, y **generar PDF estaba realmente roto en producción** (funcionaba
+en local y en Vitest, pero fallaba en el runtime serverless de Vercel).
+Se diagnosticó y corrigió en esta misma sesión — ver sección 5, punto 6.
+Diagnóstico completo de todos los problemas de deploy encontrados hasta
+ahora en el historial de commits `edbe5ba`..`37b7638`.
 
 ## 1. Resumen y decisiones fijadas
 
@@ -41,9 +54,9 @@ arreglar el deploy roto en el historial de commits `edbe5ba`..`90b880c`.
 - Vitest 5 para pruebas unitarias — **sí implementado** (ver sección 3 sobre
   el estado real de Playwright, que el skill también exige y **no** está
   implementado).
-- Deploy: Vercel, proyecto `climatisa` (org `Climatisa`), producción en
-  https://climatisa.vercel.app. Dominio propio todavía pendiente (ver
-  checklist).
+- Deploy: Vercel, proyecto `climatisa` (org `Climatisa`, plan **Hobby**),
+  producción en https://cotizador.chambeadora.com (dominio propio, ya
+  configurado — ver sección 3).
 
 ### Decisiones de producto que resuelven ambigüedades del skill
 
@@ -117,8 +130,10 @@ ad-hoc que nunca se comitearon al repo, no con una suite E2E mantenida.
 - **Fase 4b** — Generación de PDF server-side con `@react-pdf/renderer`:
   logo, textos comerciales obligatorios (instalación cubre equipo +
   materiales + mano de obra), bloque de anticipo/saldo, vendedor fijo.
-  Probado extrayendo el texto real del PDF generado (no solo que la
-  llamada no falle).
+  Probado extrayendo el texto real del PDF generado, **en local y ahora
+  también en producción** (ver sección 5 — se encontró y corrigió un bug
+  real de empaquetado de `pdfkit` que rompía este endpoint específicamente
+  en el runtime serverless de Vercel, invisible en local/Vitest).
 - **Fase 5** — Búsqueda de cotizaciones (por número o nombre de cliente en
   `/cotizaciones/buscar`), edición de cotizaciones con recalculo selectivo
   (ver decisión 1 arriba), cambios de estado
@@ -141,22 +156,25 @@ ad-hoc que nunca se comitearon al repo, no con una suite E2E mantenida.
 ## 3. Pendiente antes de usarlo con un cliente real
 
 - [ ] **Reemplazar los datos demo por los datos reales de Climatisa.**
-  `prisma/seed.ts` (ya sembrado en la base de Railway actual) crea: 5
-  equipos a `Q 0.00` ("Split/Cassette/Multi Split Demo"), 5 rangos de kit
-  de instalación (0–25 m) a `Q 0.00`, 3 niveles de complejidad con ajuste
-  `Q 0.00`, y `CompanySettings` con `"Empresa Demo"`, teléfono
-  `"0000-0000"`, `demo@empresa.test` y dirección demo. Todo esto ya tiene
-  pantallas de administración funcionando (`/admin/equipos`,
-  `/admin/kits`, `/admin/complejidades`, `/admin/empresa`) — reemplazarlo
-  es trabajo de datos, no de código.
+  **Sigue sin hacerse — confirmado en vivo contra Railway en esta
+  auditoría** (no asumido): 5 equipos a `Q 0.00` ("Split/Cassette/Multi
+  Split Demo"), 5 rangos de kit de instalación (0–25 m) a `Q 0.00`, 3
+  niveles de complejidad con ajuste `Q 0.00`, y `CompanySettings` con
+  `companyName="Empresa Demo"`, `phone="0000-0000"`,
+  `email="demo@empresa.test"` — exactamente igual que en la auditoría
+  anterior, sin cambios. Todo esto ya tiene pantallas de administración
+  funcionando (`/admin/equipos`, `/admin/kits`, `/admin/complejidades`,
+  `/admin/empresa`) — reemplazarlo es trabajo de datos, no de código.
 - [ ] **Cambiar las contraseñas de seed.** `admin`/`admin123` y
-  `cotizador`/`cotizador123` son triviales a propósito para desarrollo
-  (documentado en `prisma/seed.ts` y en el README). No hay pantalla de
-  cambio de contraseña en la app todavía — hay que actualizarlas
-  directamente en la base (o re-sembrar con valores nuevos) antes de dar
-  acceso real.
+  `cotizador`/`cotizador123` **siguen siendo las mismas en producción** —
+  confirmado en esta auditoría con un login real exitoso usando
+  `admin`/`admin123` contra https://cotizador.chambeadora.com. No hay
+  pantalla de cambio de contraseña en la app todavía — hay que
+  actualizarlas directamente en la base (o re-sembrar con valores nuevos)
+  antes de dar acceso real.
 - [x] **Push a GitHub al día.** `main` local y `origin/main` sincronizados
-  (verificado 2026-09-22, hasta el commit `90b880c`).
+  (reconfirmado en esta auditoría, hasta el commit `37b7638` — `git log
+  origin/main..HEAD` vacío).
 - [x] **Deploy en Vercel.** Proyecto `climatisa` creado, variables de
   entorno de producción configuradas (`DATABASE_URL`, `NEXTAUTH_SECRET`,
   `NEXTAUTH_URL`, `NEXT_PUBLIC_COMPANY_NAME`), build y deploy en verde,
@@ -180,7 +198,24 @@ ad-hoc que nunca se comitearon al repo, no con una suite E2E mantenida.
 > es. El subdominio de producción vive bajo `chambeadora.com`, un dominio
 > distinto que ya administra el product owner en Cloudflare. No asumir
 > `climatisa.com` en futuras configuraciones (DNS, certificados, CORS,
-> etc.) sin confirmarlo primero.
+> etc.) sin confirmarlo primero. **`climatisa.com` ya NO está registrado
+> en la cuenta de Vercel** (se eliminó por completo en esta auditoría,
+> 2026-09-22, con `vercel domains rm climatisa.com -y`) — confirmado con
+> `vercel domains ls` (solo queda `chambeadora.com`) y `vercel alias ls`
+> (ya no aparece `cotizador.climatisa.com`).
+>
+> **Nota — quitar solo el alias no basta, hay que quitar el dominio del
+> proyecto.** La primera vez que se corrigió el dominio equivocado
+> (sesión anterior) solo se quitó con `vercel alias rm
+> cotizador.climatisa.com`, sin quitar `climatisa.com` como dominio del
+> proyecto. Resultado: el siguiente `vercel --prod` **volvió a crear el
+> alias automáticamente**, porque Vercel realiasa todos los dominios
+> configurados en el proyecto en cada deploy de producción, sin importar
+> si el alias se había borrado a mano. La forma correcta de quitar un
+> dominio por completo es `vercel domains rm <dominio> -y` (nota el flag
+> `-y`, no `--yes` al final ni confirmación interactiva con `echo "y" |
+> ...` — el prompt de este comando específico no responde bien a stdin
+> pipeado, hay que usar el flag).
 >
 > **Nota — `vercel domains inspect` no siempre muestra el CNAME
 > recomendado.** El texto plano de `vercel domains inspect <dominio>`
@@ -220,9 +255,10 @@ ad-hoc que nunca se comitearon al repo, no con una suite E2E mantenida.
   Vercel fue correctitud de una sola request a la vez (login, lectura,
   escritura), no concurrencia. Revisar antes de tráfico real; considerar
   Prisma Accelerate o un pooler dedicado si el volumen lo justifica.
-- [ ] **Suite de Playwright — pendiente, confirmado en esta auditoría.** El
-  skill (sección 0) exige explícitamente "Tests E2E: Playwright" junto a
-  Vitest. Auditando el repo: no existe `@playwright/test` como dependencia,
+- [ ] **Suite de Playwright — pendiente, reconfirmado en esta auditoría
+  (sin cambios desde la auditoría anterior).** El skill (sección 0) exige
+  explícitamente "Tests E2E: Playwright" junto a Vitest. Auditando el
+  repo: no existe `@playwright/test` como dependencia,
   no hay `playwright.config.ts`, y no hay ninguna carpeta de tests E2E
   comiteada. Todas las verificaciones "en navegador real" hechas en cada
   fase de este proyecto se hicieron con scripts de Playwright ad-hoc en un
@@ -267,20 +303,9 @@ ad-hoc que nunca se comitearon al repo, no con una suite E2E mantenida.
   `npx tsc --noEmit` directamente); es una conveniencia menor, no bloquea
   nada.
 
-## 5. Verificación de esta auditoría (2026-09-21, actualizada 2026-09-22)
+## 5. Verificación de esta auditoría (2026-09-22, dos rondas el mismo día)
 
-Comandos corridos contra el estado real del repo antes de escribir este
-documento:
-
-- `npx tsc --noEmit` → sin errores.
-- `npm run lint` → sin advertencias ni errores.
-- `npm test` (`vitest run`) → 10 archivos, 94 pruebas, todas en verde.
-- `npm run build` → build de producción exitoso, todas las rutas compilan.
-- `git status` → limpio (sin cambios sin comitear).
-- `git log` / `git status -sb` → `main` local sincronizado con
-  `origin/main` (commit `90b880c`).
-
-**2026-09-22 — deploy en Vercel arreglado y verificado en vivo:**
+### Primera ronda (deploy inicial) — 2026-09-22, temprano
 
 - Se diagnosticaron y corrigieron, en orden, tres causas reales distintas
   de un deploy roto (no un solo bug): (1) rutas autenticadas sin
@@ -293,8 +318,90 @@ documento:
   `vercel inspect --logs`), no por prueba y error.
 - Deploy de producción verificado con `vercel deploy --prod`:
   `readyState: "READY"`.
-- Verificación en navegador real contra
-  [https://climatisa.vercel.app](https://climatisa.vercel.app): login con
-  `admin`/`admin123`, navegación a `/admin` y `/cotizaciones/buscar`
-  (lectura real de Postgres), creación de un cliente de prueba (escritura
-  real) confirmada en `/clientes` y luego eliminada de Railway.
+- Verificación en navegador real: login con `admin`/`admin123`,
+  navegación a `/admin` y `/cotizaciones/buscar` (lectura real de
+  Postgres), creación de un cliente de prueba (escritura real) confirmada
+  en `/clientes` y luego eliminada de Railway. **Esta ronda NO probó
+  generar PDF ni el botón de WhatsApp** — la segunda ronda (abajo) lo
+  encontró y lo corrige.
+- Más tarde el mismo día se configuró el dominio propio
+  `cotizador.chambeadora.com` (ver sección 3).
+
+### Segunda ronda (auditoría completa pedida explícitamente) — 2026-09-22, tarde
+
+Auditoría punto por punto, cada uno verificado en vivo antes de escribirse
+aquí:
+
+**1) Limpieza de la verificación de producción anterior.** Se consultó la
+base real de Railway (`prisma.client.count()`, `prisma.quote.count()`)
+antes de tocar nada: **0 clientes, 0 cotizaciones** — la limpieza de la
+ronda anterior fue completa, no quedó nada pendiente. Confirmado
+explícitamente, no asumido.
+
+**2) Dominio y variables de entorno en Vercel.** Se encontró un rastro
+real del dominio equivocado que la ronda anterior no había limpiado del
+todo: `climatisa.com` seguía registrado como dominio en la cuenta de
+Vercel, y `cotizador.climatisa.com` había vuelto a aparecer como alias
+activo (Vercel realiasa todos los dominios del proyecto en cada
+`vercel --prod`, así que quitar solo el alias con `vercel alias rm` no
+alcanza). Se corrigió con `vercel domains rm climatisa.com -y` — ver nota
+detallada en la sección 3. Confirmado después: `vercel domains ls` solo
+lista `chambeadora.com`; `vercel alias ls` ya no muestra ningún alias con
+`climatisa.com`. `NEXTAUTH_URL` de producción se confirmó
+indirectamente pero de forma concluyente: el login real en la sección 6
+mantuvo la sesión correctamente sobre `cotizador.chambeadora.com` en
+todas las páginas navegadas — si `NEXTAUTH_URL` estuviera mal, eso no
+funcionaría de forma consistente (Vercel no permite leer el valor en
+texto plano vía CLI/dashboard una vez guardado como "Secret").
+
+**3) Calidad de código, en vivo.** Números reales de esta corrida:
+  - `npx tsc --noEmit` → **0 errores**.
+  - `npm run lint` → **0 advertencias, 0 errores** ("No ESLint warnings or errors").
+  - `npx vitest run` → **10 archivos de test, 94 pruebas, 94 pasando, 0 fallando**.
+  - `npm run build` → build de producción exitoso, 27 rutas compiladas
+    (confirmado leyendo la tabla de rutas completa, no solo el código de
+    salida).
+
+**4) Git.** `git status --short` → vacío (sin cambios sin comitear).
+`git log origin/main..HEAD` → vacío tras el commit `37b7638` (nada sin
+subir). `git log HEAD..origin/main` → vacío (nada sin bajar tampoco).
+
+**5) Estado real de cada pendiente ya documentado** — ver detalle con
+cada ítem en la sección 3, resumen aquí:
+  - Datos demo: **sin cambios**, siguen en `Q 0.00` / "Empresa Demo".
+  - Contraseñas de seed: **sin cambios**, `admin`/`admin123` confirmado
+    funcionando con un login real.
+  - Plan de Vercel: **sigue en Hobby** (`vercel teams ls` → `climatisa
+    Climatisa hobby`).
+  - Playwright: **sigue sin implementarse**, sin cambios desde la
+    auditoría anterior.
+
+**6) Prueba funcional mínima contra producción real.** Se ejecutó el
+flujo completo con datos de prueba propios, con Playwright contra
+`https://cotizador.chambeadora.com`:
+  - Login (`admin`/`admin123`) → OK.
+  - Crear cliente ("AUDITORIA PROD `<timestamp>`") → OK.
+  - Crear cotización con un área (equipo + 8m + complejidad Media) → OK,
+    generó `COT-2026-000002`.
+  - **Generar PDF → FALLÓ con HTTP 500.** Log real de Vercel:
+    `Error: Cannot find module
+    '/var/task/node_modules/pdfkit/js/standard-fonts/Helvetica.cjs'`.
+    Causa raíz: `pdfkit` (usado por `@react-pdf/renderer`) carga sus
+    fuentes con un `require()` dinámico que el output file tracing de
+    Vercel no detecta, así que esos archivos no se incluyen en el bundle
+    de la función serverless — funcionaba en local y en Vitest (Node
+    directo, sin ese empaquetado) pero nunca había sido probado en el
+    runtime real de Vercel hasta ahora. Corregido con
+    `outputFileTracingIncludes` en `next.config.mjs` (commit `37b7638`),
+    redesplegado, y **reverificado exitosamente**: HTTP 200,
+    `content-type: application/pdf`, 35,456 bytes, contenido confirmado
+    (nombre del cliente, "Romeo Morales", texto base de instalación).
+  - Botón de WhatsApp → OK tras el fix: `href` empieza con
+    `https://wa.me/`, número `50255551234` (502 antepuesto correctamente
+    al número local de 8 dígitos), mensaje con formato correcto ("Hola
+    AUDITORIA PROD `<timestamp>`, te compartimos la cotización
+    COT-2026-000002 de Empresa Demo.").
+  - **Limpieza confirmada:** se borraron el cliente y la cotización de
+    prueba de Railway al terminar (`prisma.quote.delete` +
+    `prisma.client.delete`), y se volvió a consultar la base para
+    confirmar: **0 clientes, 0 cotizaciones** al cerrar esta auditoría.
