@@ -5,11 +5,15 @@ repo real (git log, git status, typecheck, lint, test, build, y una
 revisión directa del código) en vez de reconstruirse de memoria — donde el
 estado real difería de lo esperado, se corrigió aquí en vez de copiarlo.
 
-**Deploy en producción: LISTO Y VERIFICADO.**
-[https://climatisa.vercel.app](https://climatisa.vercel.app) — login real,
-lectura y escritura contra Railway confirmadas en vivo el 2026-09-22 (ver
-sección 5). Diagnóstico completo del proceso de arreglar el deploy roto en
-el historial de commits `edbe5ba`..`90b880c`.
+**Deploy en producción: LISTO Y VERIFICADO, con dominio propio.**
+[https://cotizador.chambeadora.com](https://cotizador.chambeadora.com) —
+login real, lectura y escritura contra Railway confirmadas en vivo el
+2026-09-22 (ver sección 5). El dominio base **no es climatisa.com, es
+chambeadora.com** (dominio propio del product owner, ya en Cloudflare) —
+ojo con esto, es fácil asumir climatisa.com por el nombre del proyecto.
+`https://climatisa.vercel.app` (el subdominio `.vercel.app` por defecto)
+sigue funcionando como respaldo. Diagnóstico completo del proceso de
+arreglar el deploy roto en el historial de commits `edbe5ba`..`90b880c`.
 
 ## 1. Resumen y decisiones fijadas
 
@@ -156,15 +160,36 @@ ad-hoc que nunca se comitearon al repo, no con una suite E2E mantenida.
 - [x] **Deploy en Vercel.** Proyecto `climatisa` creado, variables de
   entorno de producción configuradas (`DATABASE_URL`, `NEXTAUTH_SECRET`,
   `NEXTAUTH_URL`, `NEXT_PUBLIC_COMPANY_NAME`), build y deploy en verde,
-  login/lectura/escritura verificados en vivo contra
-  https://climatisa.vercel.app. Ver nota importante abajo sobre cómo
-  quedaron esas variables la primera vez.
-- [ ] **Configurar el dominio propio (opcional, el `.vercel.app` ya
-  funciona).** Falta apuntar un subdominio real de Climatisa en Cloudflare
-  como **CNAME en modo "DNS only" (no proxied)** para que Vercel pueda
-  emitir su propio certificado TLS, agregarlo en Vercel → Domains, y
-  actualizar `NEXTAUTH_URL` de producción a ese dominio final (hoy apunta a
-  `https://climatisa-climatisa.vercel.app`).
+  login/lectura/escritura verificados en vivo. Ver nota importante abajo
+  sobre cómo quedaron esas variables la primera vez.
+- [x] **Dominio propio configurado.** `cotizador.chambeadora.com` (dominio
+  de Cloudflare del product owner — **no** `climatisa.com`, ver nota de
+  dominio abajo) agregado al proyecto vía `vercel domains add`, con un
+  registro **CNAME** en Cloudflare en modo "DNS only" (no proxied) apuntando
+  al target específico que Vercel indicó
+  (`04e890770a59206e.vercel-dns-017.com.` — no el genérico
+  `cname.vercel-dns.com`; cada dominio puede recibir un target distinto,
+  hay que sacarlo de `vercel domains verify <dominio>` en cada caso, no
+  asumirlo). `NEXTAUTH_URL` de producción actualizado a
+  `https://cotizador.chambeadora.com` y redeploy hecho. Verificado con
+  login real + TLS funcionando sobre el dominio final.
+
+> **Nota — el dominio base es chambeadora.com, no climatisa.com.** El
+> nombre del proyecto de Vercel (`climatisa`) y el nombre del producto
+> pueden hacer pensar que el dominio también es `climatisa.com` — no lo
+> es. El subdominio de producción vive bajo `chambeadora.com`, un dominio
+> distinto que ya administra el product owner en Cloudflare. No asumir
+> `climatisa.com` en futuras configuraciones (DNS, certificados, CORS,
+> etc.) sin confirmarlo primero.
+>
+> **Nota — `vercel domains inspect` no siempre muestra el CNAME
+> recomendado.** El texto plano de `vercel domains inspect <dominio>`
+> sugirió un registro **A** (`76.76.21.21`) como "[recommended]", pero el
+> tipo de registro realmente verificado y aceptado por Vercel para un
+> subdominio fue un **CNAME** a un target específico del dominio. Para
+> obtener el registro correcto, usar `vercel domains verify <dominio>` (no
+> `inspect`) y leer el campo `recommended.records` de la respuesta JSON,
+> no el resumen de texto.
 
 > **Nota importante para la próxima sesión — variables de entorno vacías.**
 > Al verificar el deploy el 2026-09-22 se encontró que **las tres variables
