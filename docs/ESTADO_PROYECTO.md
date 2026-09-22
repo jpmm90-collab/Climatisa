@@ -1,10 +1,15 @@
 # Estado del proyecto — Climatisa Cotizador
 
-Última actualización: 2026-09-21, tras cerrar la Fase 6. Este documento se
-generó auditando el repo real (git log, git status, typecheck, lint, test,
-build, y una revisión directa del código) en vez de reconstruirse de
-memoria — donde el estado real difería de lo esperado, se corrigió aquí en
-vez de copiarlo.
+Última actualización: 2026-09-22. Este documento se generó auditando el
+repo real (git log, git status, typecheck, lint, test, build, y una
+revisión directa del código) en vez de reconstruirse de memoria — donde el
+estado real difería de lo esperado, se corrigió aquí en vez de copiarlo.
+
+**Deploy en producción: LISTO Y VERIFICADO.**
+[https://climatisa.vercel.app](https://climatisa.vercel.app) — login real,
+lectura y escritura contra Railway confirmadas en vivo el 2026-09-22 (ver
+sección 5). Diagnóstico completo del proceso de arreglar el deploy roto en
+el historial de commits `edbe5ba`..`90b880c`.
 
 ## 1. Resumen y decisiones fijadas
 
@@ -32,7 +37,9 @@ vez de copiarlo.
 - Vitest 5 para pruebas unitarias — **sí implementado** (ver sección 3 sobre
   el estado real de Playwright, que el skill también exige y **no** está
   implementado).
-- Deploy previsto: Vercel (aún no desplegado — ver checklist).
+- Deploy: Vercel, proyecto `climatisa` (org `Climatisa`), producción en
+  https://climatisa.vercel.app. Dominio propio todavía pendiente (ver
+  checklist).
 
 ### Decisiones de producto que resuelven ambigüedades del skill
 
@@ -144,19 +151,38 @@ ad-hoc que nunca se comitearon al repo, no con una suite E2E mantenida.
   cambio de contraseña en la app todavía — hay que actualizarlas
   directamente en la base (o re-sembrar con valores nuevos) antes de dar
   acceso real.
-- [ ] **Confirmar que el push a GitHub está al día.** Al momento de esta
-  auditoría, `main` local está **1 commit adelante de `origin/main`**: el
-  commit `f9bc3f8` (Fase 6 — límites de texto, CRUD de empresa, PWA) no se
-  ha subido todavía. Correr `git push` antes de considerar el remoto
-  actualizado, o confirmar explícitamente si se decide subirlo después.
-- [ ] **Configurar el subdominio de producción.** El proyecto no está
-  desplegado todavía. Falta: crear el proyecto en Vercel, cargar las
-  variables de entorno (`DATABASE_URL` con `connection_limit`/
-  `pool_timeout`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`,
-  `NEXT_PUBLIC_COMPANY_NAME`), apuntar el subdominio real en Cloudflare
+- [x] **Push a GitHub al día.** `main` local y `origin/main` sincronizados
+  (verificado 2026-09-22, hasta el commit `90b880c`).
+- [x] **Deploy en Vercel.** Proyecto `climatisa` creado, variables de
+  entorno de producción configuradas (`DATABASE_URL`, `NEXTAUTH_SECRET`,
+  `NEXTAUTH_URL`, `NEXT_PUBLIC_COMPANY_NAME`), build y deploy en verde,
+  login/lectura/escritura verificados en vivo contra
+  https://climatisa.vercel.app. Ver nota importante abajo sobre cómo
+  quedaron esas variables la primera vez.
+- [ ] **Configurar el dominio propio (opcional, el `.vercel.app` ya
+  funciona).** Falta apuntar un subdominio real de Climatisa en Cloudflare
   como **CNAME en modo "DNS only" (no proxied)** para que Vercel pueda
-  emitir su propio certificado TLS, y actualizar `NEXTAUTH_URL` al dominio
-  final (hoy apunta a `http://localhost:3000` en `.env.example`).
+  emitir su propio certificado TLS, agregarlo en Vercel → Domains, y
+  actualizar `NEXTAUTH_URL` de producción a ese dominio final (hoy apunta a
+  `https://climatisa-climatisa.vercel.app`).
+
+> **Nota importante para la próxima sesión — variables de entorno vacías.**
+> Al verificar el deploy el 2026-09-22 se encontró que **las tres variables
+> secretas de producción (`DATABASE_URL`, `NEXTAUTH_SECRET`,
+> `NEXTAUTH_URL`) habían sido creadas en Vercel con valor vacío** (existían
+> como nombre pero sin contenido) — esto rompía el build (`NEXTAUTH_URL`
+> vacío hacía que `next-auth` llamara `new URL("")` durante el prerender) y
+> luego el runtime (`DATABASE_URL` vacío hacía que Prisma fallara al
+> conectar). Se corrigieron con valores reales vía `vercel env rm` +
+> `vercel env add` (ambas cuentan como "Secret", así que sus valores no se
+> pueden volver a leer por CLI/dashboard — si hace falta rotar alguna, hay
+> que generarla de nuevo, no recuperarla). También se encontró y borró un
+> **proyecto de Vercel duplicado** (`climatisa-bz9t`, creado por accidente
+> 7 minutos después del real) — si en el futuro aparece un deploy con URL
+> rara (`climatisa-xxxx-climatisa.vercel.app` en vez de simplemente
+> `climatisa.vercel.app`) o variables de entorno que no coinciden con las
+> que uno acaba de configurar, revisar primero si no se creó sin querer un
+> segundo proyecto (`vercel project ls`).
 - [ ] **Revisar el pooling de conexiones Vercel ↔ Railway antes de tráfico
   real.** En la Fase 4a se detectó agotamiento del pool de Prisma bajo
   carga concurrente (`P2028: Unable to start a transaction`) al crear
@@ -165,9 +191,10 @@ ad-hoc que nunca se comitearon al repo, no con una suite E2E mantenida.
   `connection_limit=20&pool_timeout=20` en `DATABASE_URL`. Ese ajuste se
   probó contra Railway directo, **no** desde funciones serverless de
   Vercel (donde cada invocación fría puede abrir su propia conexión y el
-  patrón de concurrencia es distinto). Revisar antes de tráfico real;
-  considerar Prisma Accelerate o un pooler dedicado si el volumen lo
-  justifica.
+  patrón de concurrencia es distinto) — lo verificado el 2026-09-22 en
+  Vercel fue correctitud de una sola request a la vez (login, lectura,
+  escritura), no concurrencia. Revisar antes de tráfico real; considerar
+  Prisma Accelerate o un pooler dedicado si el volumen lo justifica.
 - [ ] **Suite de Playwright — pendiente, confirmado en esta auditoría.** El
   skill (sección 0) exige explícitamente "Tests E2E: Playwright" junto a
   Vitest. Auditando el repo: no existe `@playwright/test` como dependencia,
@@ -215,7 +242,7 @@ ad-hoc que nunca se comitearon al repo, no con una suite E2E mantenida.
   `npx tsc --noEmit` directamente); es una conveniencia menor, no bloquea
   nada.
 
-## 5. Verificación de esta auditoría (2026-09-21)
+## 5. Verificación de esta auditoría (2026-09-21, actualizada 2026-09-22)
 
 Comandos corridos contra el estado real del repo antes de escribir este
 documento:
@@ -225,5 +252,24 @@ documento:
 - `npm test` (`vitest run`) → 10 archivos, 94 pruebas, todas en verde.
 - `npm run build` → build de producción exitoso, todas las rutas compilan.
 - `git status` → limpio (sin cambios sin comitear).
-- `git log` / `git status -sb` → `main` local 1 commit adelante de
-  `origin/main` (ver checklist arriba).
+- `git log` / `git status -sb` → `main` local sincronizado con
+  `origin/main` (commit `90b880c`).
+
+**2026-09-22 — deploy en Vercel arreglado y verificado en vivo:**
+
+- Se diagnosticaron y corrigieron, en orden, tres causas reales distintas
+  de un deploy roto (no un solo bug): (1) rutas autenticadas sin
+  `dynamic = "force-dynamic"` explícito — `getServerSession` de next-auth
+  v4 no dispara de forma confiable la detección implícita de Next para
+  App Router; (2) `bcrypt` nativo sin binario compatible en el runtime
+  serverless de Vercel — resuelto cambiando a `bcryptjs`; (3) las tres
+  variables de entorno secretas de producción creadas vacías en Vercel.
+  Cada una se diagnosticó con el log real de Vercel (`vercel logs` /
+  `vercel inspect --logs`), no por prueba y error.
+- Deploy de producción verificado con `vercel deploy --prod`:
+  `readyState: "READY"`.
+- Verificación en navegador real contra
+  [https://climatisa.vercel.app](https://climatisa.vercel.app): login con
+  `admin`/`admin123`, navegación a `/admin` y `/cotizaciones/buscar`
+  (lectura real de Postgres), creación de un cliente de prueba (escritura
+  real) confirmada en `/clientes` y luego eliminada de Railway.
