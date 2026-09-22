@@ -19,8 +19,14 @@ vez de copiarlo.
 - Prisma **6.19.3** (fijado deliberadamente, no la última versión — 7.x/8.x
   introducen una arquitectura de driver-adapters que requiere
   `prisma.config.ts` y se consideró innecesaria/inestable para este MVP).
-- Auth.js / NextAuth **v4.24.15** (Credentials + bcrypt, estrategia de
-  sesión JWT) — deliberadamente no v5, que sigue en beta.
+- Auth.js / NextAuth **v4.24.15** (Credentials + **bcryptjs**, estrategia de
+  sesión JWT) — deliberadamente no v5, que sigue en beta. Se usa `bcryptjs`
+  (pura JS) en vez de `bcrypt` (nativo): excepción confirmada al skill,
+  documentada en `CLAUDE.md`, por una falla real y recurrente de `bcrypt`
+  en el runtime serverless de Vercel (`No native build was found for
+  platform=linux...`) — ver sección de deuda/decisiones más abajo si
+  aplica, y el historial de commits de 2026-09-22 para el diagnóstico
+  completo.
 - `@react-pdf/renderer` 4.9.0, generación de PDF server-side.
 - Zod 4, React Hook Form 7.
 - Vitest 5 para pruebas unitarias — **sí implementado** (ver sección 3 sobre
@@ -79,7 +85,7 @@ sesión de navegador (no solo pruebas unitarias) — aunque, como se detalla
 en la sección 3, esa verificación en vivo se hizo con scripts de Playwright
 ad-hoc que nunca se comitearon al repo, no con una suite E2E mantenida.
 
-- **Fase 1** — Next.js + Prisma + Auth.js: login con Credentials + bcrypt,
+- **Fase 1** — Next.js + Prisma + Auth.js: login con Credentials + bcryptjs,
   roles `ADMIN`/`COTIZADOR` verificados en backend (`src/lib/auth-guard.ts`,
   usado por las rutas de API sensibles), layout móvil-first, gestión de
   clientes (crear/listar/buscar), NIT como string que acepta `CF`

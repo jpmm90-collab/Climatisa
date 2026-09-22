@@ -14,10 +14,22 @@ anula esa parte de la sección 0 del skill; el resto de la sección 0 sigue
 vigente sin cambios. No revertir a Neon/Supabase ni volver a preguntar por
 esto salvo que el product owner lo pida explícitamente.
 
+El skill (sección 0) fija `bcrypt` para el hash de contraseñas.
+**Excepción confirmada por el product owner:** se usa **`bcryptjs`**
+(reimplementación pura en JavaScript, mismo API `hash()`/`compare()`), no
+`bcrypt`. Motivo: `bcrypt` es un módulo nativo (binario `.node` compilado)
+que falla en el runtime serverless de Vercel con
+`No native build was found for platform=linux arch=x64...` — problema
+recurrente y documentado de `bcrypt` en ese entorno, no un error puntual de
+este proyecto. `bcryptjs` no tiene binario nativo, así que no depende de
+que la plataforma de build coincida con la de runtime. No revertir a
+`bcrypt` nativo ni volver a preguntar por esto salvo que el product owner
+lo pida explícitamente.
+
 ## No negociable (repetido aquí para que nunca se pierda de vista)
 
 - Stack fijo: Next.js 14 (App Router) + TypeScript strict, Tailwind + shadcn/ui,
-  PostgreSQL (Railway) + Prisma, Auth.js (Credentials + bcrypt),
+  PostgreSQL (Railway) + Prisma, Auth.js (Credentials + bcryptjs),
   `@react-pdf/renderer` server-side, Zod, React Hook Form, Vitest, Playwright.
   No Redux/Zustand, no GraphQL, no microservicios, no segundo ORM, no IA para
   calcular precios.
