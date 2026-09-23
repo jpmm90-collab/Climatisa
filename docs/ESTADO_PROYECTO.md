@@ -166,6 +166,19 @@ que una cotización Cento use el cliente fijo y viceversa — se agregó la
 verificación simétrica que faltaba en `PUT` (editar una cotización
 Climatisa existente hacia el cliente de Cento).
 
+**Esa exclusión NO afecta "Buscar cotización" — confirmado en vivo, no
+asumido.** El product owner señaló correctamente el riesgo de que un
+cambio así de amplio se filtre a un lugar donde sí hace falta encontrar a
+Cento: `/cotizaciones/buscar` (sección 6) busca por nombre de cliente
+para encontrar cotizaciones ya existentes, un caso de uso legítimo y
+distinto a "elegir a Cento como cliente nuevo". Por diseño esa página
+nunca pasó por `GET /api/clients` (consulta `prisma.quote.findMany`
+directo, filtrando `client.name`), así que no debía verse afectada — pero
+en vez de asumirlo, se creó una cotización Cento temporal en producción
+real y se confirmó: `GET /cotizaciones/buscar?q=Cento` sí la encuentra
+por nombre de cliente. Cotización de prueba eliminada de Railway al
+terminar; estado final 1 cliente (solo Cento), 0 cotizaciones.
+
 ## 2. Qué está completo (Fases 1–6)
 
 Todo lo listado aquí está implementado, pasa la suite de Vitest, y fue
