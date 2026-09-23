@@ -149,6 +149,23 @@ importar quién lo llame, verificado en vivo contra producción real. **No
 existe protección equivalente para un futuro `DELETE`** porque ese
 endpoint no existe todavía — si se agrega, necesita el mismo guard.
 
+**Cliente fijo de Cento excluido del buscador normal de clientes (en el
+servidor).** Pregunta real del product owner: como Cento ahora es un
+`Client` real en la tabla, ¿aparece si un cotizador lo busca desde el
+flujo normal (Climatisa) y lo elige como si fuera un cliente final
+cualquiera? Eso generaría una cotización Climatisa con equipo a precio
+normal facturado a "Cento" — exactamente la confusión que el feature
+existe para evitar. Confirmado y corregido: `GET /api/clients` ahora
+excluye `CENTO_CLIENT_ID` directamente en la consulta a la base (no solo
+en el frontend del asistente, que además ya lo filtraba — se simplificó
+ese filtro duplicado una vez que el servidor lo garantiza). Verificado en
+vivo: `GET /api/clients?q=Cento` devuelve `[]`; buscando "Cento" en el
+paso normal de cliente del asistente muestra "No se encontraron
+clientes". Además, `POST`/`PUT /api/quotes` ya verificaban (desde antes)
+que una cotización Cento use el cliente fijo y viceversa — se agregó la
+verificación simétrica que faltaba en `PUT` (editar una cotización
+Climatisa existente hacia el cliente de Cento).
+
 ## 2. Qué está completo (Fases 1–6)
 
 Todo lo listado aquí está implementado, pasa la suite de Vitest, y fue

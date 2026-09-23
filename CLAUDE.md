@@ -43,8 +43,17 @@ Reglas de Cento:
 - El cliente es un registro fijo sembrado una sola vez
   (`CENTO_CLIENT_ID = "cento"` en `src/lib/constants.ts`, mismo patrón que
   `CompanySettings.id = "default"`). El asistente nunca lo busca ni lo
-  crea — lo asigna automáticamente al elegir "Cento" en el primer paso, y
-  el buscador normal de clientes lo excluye explícitamente.
+  crea — lo asigna automáticamente al elegir "Cento" en el primer paso.
+  `GET /api/clients` lo excluye **en el servidor** (no solo en el
+  frontend) para que nadie pueda buscarlo/elegirlo como cliente final
+  normal en una cotización Climatisa — el riesgo real que esto evita: un
+  cotizador buscando "Cento" en el flujo normal y seleccionándolo por
+  error terminaría en una cotización Climatisa con equipo a precio normal
+  facturado a nombre de Cento, justo la confusión que este feature existe
+  para evitar. `POST`/`PUT /api/quotes` también verifican en ambas
+  direcciones (Cento con cliente distinto al fijo, o el cliente fijo con
+  `quoteType` distinto a Cento) — nunca confiar solo en que el asistente
+  no debería permitirlo.
 - El equipo se sigue seleccionando del catálogo normal (para registrar qué
   se instaló) pero **no se cobra**: `equipmentPriceSnapshot` queda en
   `Q 0.00` de forma explícita, mostrado siempre con la nota "Equipo

@@ -86,6 +86,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         );
       }
     }
+    if (quoteType === "CLIMATISA" && client.id === CENTO_CLIENT_ID) {
+      throw new QuoteValidationError("El cliente fijo de Cento solo se usa en cotizaciones tipo Cento");
+    }
 
     const existingLineById = new Map(
       existingQuote.areas.flatMap((area) => area.equipment.map((line) => [line.id, line])),

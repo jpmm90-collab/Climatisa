@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { clientSchema } from "@/lib/validations/client";
+import { CENTO_CLIENT_ID } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -13,16 +14,24 @@ export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   const clients = await prisma.client.findMany({
-    where: q
-      ? {
-          OR: [
-            { name: { contains: q, mode: "insensitive" } },
-            { phone: { contains: q, mode: "insensitive" } },
-            { company: { contains: q, mode: "insensitive" } },
-            { nit: { contains: q, mode: "insensitive" } },
-          ],
-        }
-      : undefined,
+    where: {
+      // El cliente fijo de Cento (extensión confirmada, ver CLAUDE.md)
+      // nunca debe aparecer en este buscador — es exclusivo del flujo de
+      // cotización tipo Cento, nunca elegible como cliente final normal.
+      // Excluido aquí, en el servidor, para que ningún consumidor futuro
+      // de este endpoint pueda olvidar filtrarlo por su cuenta.
+      id: { not: CENTO_CLIENT_ID },
+      ...(q
+        ? {
+            OR: [
+              { name: { contains: q, mode: "insensitive" as const } },
+              { phone: { contains: q, mode: "insensitive" as const } },
+              { company: { contains: q, mode: "insensitive" as const } },
+              { nit: { contains: q, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
