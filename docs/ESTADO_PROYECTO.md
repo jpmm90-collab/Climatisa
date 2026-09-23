@@ -1,8 +1,10 @@
 # Estado del proyecto — Climatisa Cotizador
 
-Última actualización: 2026-09-23 — se agregó la extensión "tipo de
-cotización" (Climatisa/Cento), ver sección 1 y 5. Antes de eso: 2026-09-22
-(segunda auditoría del día). Este
+Última actualización: 2026-09-23 (tarde) — la extensión "tipo de
+cotización" (Climatisa/Cento) ya está **desplegada en producción y
+verificada ahí mismo**, incluyendo el PDF (ver sección 1 y 5). Antes de
+eso, mismo día: la extensión se implementó y se verificó primero solo en
+local. Antes de eso: 2026-09-22 (segunda auditoría del día). Este
 documento se generó/actualizó auditando el estado real **en producción**,
 no de memoria ni copiando la versión anterior de este archivo: cada
 afirmación se verificó en vivo (base de datos real de Railway, Vercel CLI,
@@ -133,6 +135,19 @@ defecto se comporta como Climatisa. Las 94 pruebas de precios/PDF que
 existían antes de esta extensión pasan sin haberse modificado; se
 agregaron 15 pruebas nuevas específicas de Cento (109 en total — ver
 sección 5).
+
+**Cliente fijo de Cento protegido contra edición vía API.** La sección 43
+del skill exige ese mismo cuidado para `VENDEDOR_RESPONSABLE` (imposible
+de sobreescribir desde el flujo normal). Hoy no existe ninguna pantalla de
+edición de clientes en la UI (ni un endpoint `DELETE` para clientes en
+absoluto), así que el riesgo de borrado accidental es cero por ahora —
+pero `PUT /api/clients/[id]` ya existía como endpoint funcional sin
+ningún caso especial, y quedaría expuesto en cuanto alguien agregue una
+pantalla de edición de clientes (un paso natural siguiente). Se agregó el
+bloqueo en el backend: `PUT /api/clients/cento` devuelve `403` sin
+importar quién lo llame, verificado en vivo contra producción real. **No
+existe protección equivalente para un futuro `DELETE`** porque ese
+endpoint no existe todavía — si se agrega, necesita el mismo guard.
 
 ## 2. Qué está completo (Fases 1–6)
 
@@ -486,3 +501,64 @@ flujo completo con datos de prueba propios, con Playwright contra
     kit y la complejidad se restauraron a `Q 0.00` en sus cuatro campos
     (`price`, `partnerPrice`, `adjustment`, `partnerAdjustment`).
     Verificación final: 1 cliente (solo Cento), 0 cotizaciones.
+
+### Protección del cliente Cento + deploy y verificación en producción real — 2026-09-23 (tarde)
+
+El product owner pidió cerrar dos huecos antes de dar la extensión de
+Cento por completa: (1) que el cliente fijo de Cento tuviera el mismo
+cuidado contra edición accidental que `VENDEDOR_RESPONSABLE`, y (2) que la
+generación de PDF de una cotización Cento se probara en el **deploy real
+de Vercel**, no solo en local — la generación de PDF ya se había roto dos
+veces antes específicamente en el empaquetado serverless de Vercel
+(`bcrypt` nativo, fuentes de `pdfkit`) sin fallar nunca en local.
+
+- **Protección del cliente Cento:** se agregó el guard en
+  `PUT /api/clients/[id]` (ver sección 1). No hacía falta ninguna prueba
+  automatizada nueva — no hay archivos de test para rutas de API en este
+  proyecto (ningún endpoint los tiene) — se verificó en vivo contra
+  producción real (ver abajo).
+
+- **Deploy a Vercel — encontró un tercer bug real de empaquetado,
+  distinto a los dos anteriores.** El primer intento de `vercel --prod`
+  falló con `Type error: Object literal may only specify known
+  properties, and 'partnerPrice' does not exist in type
+  'InstallationKitCreateManyInput'` en `prisma/seed.ts`, a pesar de que el
+  build local pasaba sin problema y la migración ya estaba aplicada en
+  Railway. Causa raíz, confirmada en el log real de Vercel: el build
+  restauró cache de un deploy anterior ("Restored build cache..."), el
+  `npm install` reportó "up to date" y por lo tanto **nunca volvió a
+  correr el postinstall de `@prisma/client`** (el que regenera el Prisma
+  Client a partir del schema) — el build siguió usando el Prisma Client
+  generado ANTES de la migración de Cento. Fix estándar y documentado
+  para Prisma+Vercel: agregar `"postinstall": "prisma generate"` como
+  script propio del proyecto en `package.json` (a diferencia del
+  postinstall interno de `@prisma/client`, este es un lifecycle hook del
+  propio `npm install` del proyecto y corre siempre, sin importar qué
+  haya servido el cache). Redeploy exitoso: `readyState: "READY"`.
+
+- **Verificación en vivo contra `https://cotizador.chambeadora.com` real**
+  (no local), mismo rigor que las pruebas anteriores — tarifas normal y
+  de socio subidas temporalmente a valores distintos (300/120 y 80/30)
+  para poder probar que la tarifa correcta se usa también en producción,
+  no solo en local:
+  - Flujo completo del asistente para Cento contra producción real →
+    `COT-2026-000005`, resumen mostrando `Q 150.00` (tarifa de socio, no
+    los `Q 380.00` normales).
+  - **PDF generado en el runtime serverless real de Vercel: HTTP 200**,
+    35,590 bytes (consistente con los 35,568 del run local equivalente —
+    ninguna fuente ni el logo se perdieron en el empaquetado). Se
+    descargó el PDF y se inspeccionó visualmente, no solo el texto
+    extraído: el logo de Climatisa se ve correctamente en la esquina
+    superior izquierda, en color, igual que en local. Contenido
+    verificado: nombre de empresa, cliente "Cento", "Vendedor de Cento:
+    Carlos Ruiz", "Cliente final: Distribuidora San Miguel", línea de
+    equipo en `Q 0.00` con la nota "Equipo suministrado por el cliente",
+    instalación en `Q 150.00`, "Romeo Morales" como vendedor sin cambios.
+  - **Protección del cliente Cento verificada contra producción real:**
+    `PUT https://cotizador.chambeadora.com/api/clients/cento` con datos
+    falsos → `403`, confirmado.
+  - **Limpieza confirmada:** la cotización de prueba (`COT-2026-000005`)
+    se eliminó de Railway; el kit y la complejidad se restauraron a
+    `Q 0.00` en sus cuatro campos. Verificación final: 1 cliente (solo
+    Cento), 0 cotizaciones — mismo estado limpio que después de la
+    verificación local.
