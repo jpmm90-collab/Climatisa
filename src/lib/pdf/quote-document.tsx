@@ -1,7 +1,11 @@
 import path from "node:path";
 import fs from "node:fs";
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
-import { INSTALLATION_BASE_TEXT, VENDEDOR_RESPONSABLE } from "@/lib/constants";
+import {
+  CENTO_EQUIPMENT_SUPPLIED_NOTE,
+  INSTALLATION_BASE_TEXT,
+  VENDEDOR_RESPONSABLE,
+} from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { QuotePdfData } from "@/lib/pdf/types";
 
@@ -62,6 +66,7 @@ const styles = StyleSheet.create({
 export function QuoteDocument({ data }: { data: QuotePdfData }) {
   const { companySettings } = data;
   const logoSrc = companySettings.logoUrl || FALLBACK_LOGO_SRC;
+  const isCento = data.quoteType === "CENTO";
 
   return (
     <Document title={data.quoteNumber}>
@@ -93,6 +98,12 @@ export function QuoteDocument({ data }: { data: QuotePdfData }) {
           <Text style={styles.muted}>Tel. {data.client.phone}</Text>
           {data.client.address ? <Text style={styles.muted}>{data.client.address}</Text> : null}
           <Text style={styles.muted}>NIT: {data.client.nit}</Text>
+          {isCento ? (
+            <>
+              <Text style={styles.muted}>Vendedor de Cento: {data.centoVendorName}</Text>
+              <Text style={styles.muted}>Cliente final: {data.centoClientReference}</Text>
+            </>
+          ) : null}
         </View>
 
         <View style={styles.section}>
@@ -111,6 +122,9 @@ export function QuoteDocument({ data }: { data: QuotePdfData }) {
                       <Text>{label}</Text>
                       <Text>{formatCurrency(equipmentTotal)}</Text>
                     </View>
+                    {isCento ? (
+                      <Text style={styles.muted}>{CENTO_EQUIPMENT_SUPPLIED_NOTE}</Text>
+                    ) : null}
                     <View style={styles.row}>
                       <Text>Instalación ({line.meters} m)</Text>
                       <Text>{formatCurrency(installationTotal)}</Text>

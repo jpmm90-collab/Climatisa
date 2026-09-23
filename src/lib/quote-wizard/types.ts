@@ -1,5 +1,9 @@
 import type { DiscountType } from "@/lib/pricing/engine";
 
+// Extensión confirmada al skill (ver CLAUDE.md): para quién es la
+// cotización. Cento es un socio comercial único y fijo.
+export type QuoteType = "CLIMATISA" | "CENTO";
+
 export interface WizardClient {
   id: string;
   name: string;
@@ -41,7 +45,9 @@ export interface WizardExtra {
 }
 
 export type WizardStep =
+  | "quote-type"
   | "client"
+  | "cento-info"
   | "area-count"
   | "area"
   | "extras"
@@ -52,6 +58,14 @@ export type WizardStep =
 
 export interface QuoteWizardState {
   step: WizardStep;
+  // Primer paso del asistente (extensión confirmada, ver CLAUDE.md). Fijo
+  // una vez creada la cotización — no se puede cambiar al editar.
+  quoteType: QuoteType;
+  // Solo aplican cuando quoteType === "CENTO": vendedor de Cento que lleva
+  // la venta y referencia (texto corto, no un registro de cliente) del
+  // cliente final de Cento. Para CLIMATISA quedan vacíos y no se envían.
+  centoVendorName: string;
+  centoClientReference: string;
   client: WizardClient | null;
   areaCount: number | null;
   currentAreaIndex: number;
@@ -68,7 +82,10 @@ export interface QuoteWizardState {
 }
 
 export const INITIAL_WIZARD_STATE: QuoteWizardState = {
-  step: "client",
+  step: "quote-type",
+  quoteType: "CLIMATISA",
+  centoVendorName: "",
+  centoClientReference: "",
   client: null,
   areaCount: null,
   currentAreaIndex: 0,

@@ -35,6 +35,9 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   const data: QuotePdfData = {
     quoteNumber: quote.quoteNumber,
     date: quote.date,
+    quoteType: quote.quoteType,
+    centoVendorName: quote.centoVendorName,
+    centoClientReference: quote.centoClientReference,
     client: {
       name: quote.client.name,
       phone: quote.client.phone,

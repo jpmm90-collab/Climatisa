@@ -19,6 +19,9 @@ export interface CatalogKit {
   minMeters: number;
   maxMeters: number | null;
   price: number;
+  // Tarifa de socio/distribuidor (cotizaciones Cento) — extensión
+  // confirmada al skill, ver CLAUDE.md.
+  partnerPrice: number;
   active: boolean;
 }
 
@@ -28,6 +31,7 @@ export interface CatalogComplexity {
   name: string;
   description: string;
   adjustment: number;
+  partnerAdjustment: number;
   active: boolean;
 }
 
@@ -56,7 +60,9 @@ export function useQuoteWizard() {
 }
 
 export const STEP_ORDER: WizardStep[] = [
+  "quote-type",
   "client",
+  "cento-info",
   "area-count",
   "area",
   "extras",

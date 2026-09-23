@@ -3,7 +3,9 @@
 import { useQuoteWizard } from "@/components/quote-wizard/context";
 
 const STEP_LABELS: Record<string, string> = {
+  "quote-type": "Tipo de cotización",
   client: "Cliente",
+  "cento-info": "Datos de Cento",
   "area-count": "Áreas",
   area: "Área",
   extras: "Extras",
@@ -35,7 +37,18 @@ export function WizardProgress() {
 }
 
 function progressPercent(step: string): number {
-  const order = ["client", "area-count", "area", "extras", "deposit", "discount", "additional-description", "summary"];
+  const order = [
+    "quote-type",
+    "client",
+    "cento-info",
+    "area-count",
+    "area",
+    "extras",
+    "deposit",
+    "discount",
+    "additional-description",
+    "summary",
+  ];
   const index = order.indexOf(step);
   if (index < 0) return 0;
   return Math.round(((index + 1) / order.length) * 100);

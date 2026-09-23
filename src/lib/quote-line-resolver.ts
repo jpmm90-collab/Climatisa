@@ -57,6 +57,7 @@ export async function loadLineCatalogs(
       minMeters: toNumber(k.minMeters),
       maxMeters: k.maxMeters === null ? null : toNumber(k.maxMeters),
       price: toNumber(k.price),
+      partnerPrice: toNumber(k.partnerPrice),
       active: k.active,
     })),
   };
@@ -65,9 +66,17 @@ export async function loadLineCatalogs(
 // Server-side, siempre: el pricing nunca se recalcula a partir de lo que
 // mandó el cliente, solo de sus decisiones estructurales (equipo, metros,
 // complejidad, cantidad) más los precios vigentes en este momento.
+//
+// quoteType (extensión confirmada, ver CLAUDE.md): decide qué tarifa está
+// vigente en este momento, no cambia la aritmética en sí — calculateLineTotal
+// no se toca. Para CENTO: el equipo no se cobra (Cento ya es dueño del
+// equipo, Q 0.00 explícito, nunca omitido) y el kit/complejidad usan la
+// tarifa de socio en vez de la normal. Default CLIMATISA para no romper
+// ningún llamado existente (creación de cotizaciones normales, pruebas).
 export function resolveLineFromCatalog(
   line: EquipmentLineInput,
   catalogs: LineCatalogs,
+  quoteType: "CLIMATISA" | "CENTO" = "CLIMATISA",
 ): ResolvedQuoteLine {
   const equipment = catalogs.equipmentById.get(line.equipmentId);
   if (!equipment || !equipment.active) {
@@ -87,11 +96,18 @@ export function resolveLineFromCatalog(
     );
   }
 
+  const isCento = quoteType === "CENTO";
+  const equipmentPrice = isCento ? 0 : toNumber(equipment.price);
+  const kitPrice = isCento ? (kit.partnerPrice ?? 0) : kit.price;
+  const complexityAdjustment = isCento
+    ? toNumber(complexity.partnerAdjustment)
+    : toNumber(complexity.adjustment);
+
   const totals = calculateLineTotal({
-    equipmentPrice: toNumber(equipment.price),
+    equipmentPrice,
     quantity: line.quantity,
-    kitPrice: kit.price,
-    complexityAdjustment: toNumber(complexity.adjustment),
+    kitPrice,
+    complexityAdjustment,
   });
 
   return {
@@ -101,9 +117,9 @@ export function resolveLineFromCatalog(
     quantity: line.quantity,
     meters: line.meters,
     equipmentNameSnapshot: equipment.name,
-    equipmentPriceSnapshot: toNumber(equipment.price),
-    installationKitPriceSnapshot: kit.price,
-    complexityAdjustmentSnapshot: toNumber(complexity.adjustment),
+    equipmentPriceSnapshot: equipmentPrice,
+    installationKitPriceSnapshot: kitPrice,
+    complexityAdjustmentSnapshot: complexityAdjustment,
     installationPriceSnapshot: totals.installationUnitPrice,
     lineTotal: totals.lineTotal,
   };

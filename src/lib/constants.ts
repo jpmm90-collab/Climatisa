@@ -23,4 +23,19 @@ export const TEXT_LIMITS = {
   additionalDescription: 500,
   installationNotesExtra: 500,
   commercialTerms: 2000,
+  centoVendorName: 120,
+  centoClientReference: 200,
 } as const;
+
+// Extensión confirmada al skill (ver CLAUDE.md, "Extensiones confirmadas
+// al skill"): Cento es un socio comercial único y fijo, no un concepto
+// general de "socios" — su cliente es un registro sembrado una sola vez,
+// nunca buscado ni creado desde el asistente. Id fijo y literal (mismo
+// patrón que CompanySettings.id = "default"), no un cuid generado.
+export const CENTO_CLIENT_ID = "cento";
+export const CENTO_CLIENT_NAME = "Cento";
+
+// Nota obligatoria (no ocultar ni omitir) para que una línea de equipo en
+// Q 0.00 de una cotización Cento no parezca un error — el equipo lo pone
+// el cliente, Climatisa no lo cotiza.
+export const CENTO_EQUIPMENT_SUPPLIED_NOTE = "Equipo suministrado por el cliente";

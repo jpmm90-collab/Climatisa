@@ -38,6 +38,13 @@ export interface QuotePdfCompanySettings {
 export interface QuotePdfData {
   quoteNumber: string;
   date: Date | string;
+  // Extensión confirmada al skill (ver CLAUDE.md). Opcionales para no
+  // romper las pruebas de PDF existentes, que no los necesitan — ausentes
+  // equivale a CLIMATISA (comportamiento idéntico al de antes de esta
+  // extensión).
+  quoteType?: "CLIMATISA" | "CENTO";
+  centoVendorName?: string | null;
+  centoClientReference?: string | null;
   client: QuotePdfClient;
   areas: QuotePdfArea[];
   extras: QuotePdfExtra[];

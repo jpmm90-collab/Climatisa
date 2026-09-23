@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { CENTO_CLIENT_ID, CENTO_CLIENT_NAME } from "@/lib/constants";
 
 const prisma = new PrismaClient();
 
@@ -27,6 +28,28 @@ async function seedUsers() {
   }
 
   console.log("Usuarios demo listos: admin/admin123 (ADMIN), cotizador/cotizador123 (COTIZADOR)");
+}
+
+// Extensión confirmada al skill (ver CLAUDE.md, "Extensiones confirmadas
+// al skill"): Cento es un socio comercial único y fijo. Su cliente se
+// siembra una sola vez con un id literal (mismo patrón que
+// CompanySettings.id = "default"), nunca se busca ni se crea desde el
+// asistente. NIT genérico a propósito — no son datos reales de Cento.
+async function seedCentoClient() {
+  await prisma.client.upsert({
+    where: { id: CENTO_CLIENT_ID },
+    update: {},
+    create: {
+      id: CENTO_CLIENT_ID,
+      name: CENTO_CLIENT_NAME,
+      phone: "0000-0000",
+      company: CENTO_CLIENT_NAME,
+      nit: "CF",
+      address: null,
+    },
+  });
+
+  console.log("Cliente fijo de Cento listo.");
 }
 
 async function seedCompanySettings() {
@@ -76,11 +99,11 @@ async function seedInstallationKits() {
 
   await prisma.installationKit.createMany({
     data: [
-      { minMeters: 0, maxMeters: 5, price: 0 },
-      { minMeters: 5, maxMeters: 10, price: 0 },
-      { minMeters: 10, maxMeters: 15, price: 0 },
-      { minMeters: 15, maxMeters: 20, price: 0 },
-      { minMeters: 20, maxMeters: 25, price: 0 },
+      { minMeters: 0, maxMeters: 5, price: 0, partnerPrice: 0 },
+      { minMeters: 5, maxMeters: 10, price: 0, partnerPrice: 0 },
+      { minMeters: 10, maxMeters: 15, price: 0, partnerPrice: 0 },
+      { minMeters: 15, maxMeters: 20, price: 0, partnerPrice: 0 },
+      { minMeters: 20, maxMeters: 25, price: 0, partnerPrice: 0 },
     ],
   });
 
@@ -89,9 +112,9 @@ async function seedInstallationKits() {
 
 async function seedComplexities() {
   const demoComplexities = [
-    { level: 1, name: "Sencilla", description: "Instalación normal, sin trabajos especiales.", adjustment: 0 },
-    { level: 2, name: "Media", description: "Requiere trabajos adicionales.", adjustment: 0 },
-    { level: 3, name: "Compleja", description: "Requiere bastante trabajo adicional.", adjustment: 0 },
+    { level: 1, name: "Sencilla", description: "Instalación normal, sin trabajos especiales.", adjustment: 0, partnerAdjustment: 0 },
+    { level: 2, name: "Media", description: "Requiere trabajos adicionales.", adjustment: 0, partnerAdjustment: 0 },
+    { level: 3, name: "Compleja", description: "Requiere bastante trabajo adicional.", adjustment: 0, partnerAdjustment: 0 },
   ];
 
   for (const demo of demoComplexities) {
@@ -107,6 +130,7 @@ async function seedComplexities() {
 
 async function main() {
   await seedUsers();
+  await seedCentoClient();
   await seedCompanySettings();
   await seedEquipment();
   await seedInstallationKits();

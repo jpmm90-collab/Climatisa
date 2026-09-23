@@ -27,11 +27,16 @@ export function serializeInstallationKit(kit: InstallationKit) {
     minMeters: toNumber(kit.minMeters),
     maxMeters: toNullableNumber(kit.maxMeters),
     price: toNumber(kit.price),
+    partnerPrice: toNumber(kit.partnerPrice),
   };
 }
 
 export function serializeComplexity(complexity: Complexity) {
-  return { ...complexity, adjustment: toNumber(complexity.adjustment) };
+  return {
+    ...complexity,
+    adjustment: toNumber(complexity.adjustment),
+    partnerAdjustment: toNumber(complexity.partnerAdjustment),
+  };
 }
 
 export function serializeCompanySettings(settings: CompanySettings) {

@@ -15,7 +15,9 @@ import {
   saveWizardDraft,
 } from "@/lib/quote-wizard/storage";
 import { INITIAL_WIZARD_STATE, type QuoteWizardState, type WizardStep } from "@/lib/quote-wizard/types";
+import { StepQuoteType } from "@/components/quote-wizard/step-quote-type";
 import { StepClient } from "@/components/quote-wizard/step-client";
+import { StepCentoInfo } from "@/components/quote-wizard/step-cento-info";
 import { StepAreaCount } from "@/components/quote-wizard/step-area-count";
 import { StepArea } from "@/components/quote-wizard/step-area";
 import { StepExtras } from "@/components/quote-wizard/step-extras";
@@ -75,6 +77,12 @@ export function QuoteWizard({ editQuoteId }: { editQuoteId?: string }) {
         setState((prev) => ({
           ...prev,
           step: "summary",
+          // quoteType es fijo al crear y nunca se ofrece cambiarlo al
+          // editar (igual que quoteNumber/status) — se toma tal cual de
+          // la cotización guardada.
+          quoteType: quote.quoteType ?? "CLIMATISA",
+          centoVendorName: quote.centoVendorName ?? "",
+          centoClientReference: quote.centoClientReference ?? "",
           client: {
             id: quote.client.id,
             name: quote.client.name,
@@ -205,8 +213,12 @@ export function QuoteWizard({ editQuoteId }: { editQuoteId?: string }) {
 
 function StepRouter({ step }: { step: WizardStep }) {
   switch (step) {
+    case "quote-type":
+      return <StepQuoteType />;
     case "client":
       return <StepClient />;
+    case "cento-info":
+      return <StepCentoInfo />;
     case "area-count":
       return <StepAreaCount />;
     case "area":
@@ -228,7 +240,11 @@ function StepRouter({ step }: { step: WizardStep }) {
 
 function nextStep(state: QuoteWizardState): WizardStep {
   switch (state.step) {
+    case "quote-type":
+      return state.quoteType === "CENTO" ? "cento-info" : "client";
     case "client":
+      return "area-count";
+    case "cento-info":
       return "area-count";
     case "area-count":
       return "area";
@@ -249,10 +265,14 @@ function nextStep(state: QuoteWizardState): WizardStep {
 
 function previousStep(state: QuoteWizardState): WizardStep {
   switch (state.step) {
+    case "quote-type":
+      return "quote-type";
     case "client":
-      return "client";
+      return "quote-type";
+    case "cento-info":
+      return "quote-type";
     case "area-count":
-      return "client";
+      return state.quoteType === "CENTO" ? "cento-info" : "client";
     case "area":
       return "area-count";
     case "extras":

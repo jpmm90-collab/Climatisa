@@ -41,13 +41,13 @@ export function ComplexityTable({ initialComplexities }: { initialComplexities: 
     formState: { errors, isSubmitting },
   } = useForm<ComplexityInput>({
     resolver: zodResolver(complexitySchema),
-    defaultValues: { level: 1, name: "", description: "", adjustment: 0, active: true },
+    defaultValues: { level: 1, name: "", description: "", adjustment: 0, partnerAdjustment: 0, active: true },
   });
 
   const openCreate = () => {
     setEditing(null);
     setServerError(null);
-    reset({ level: 1, name: "", description: "", adjustment: 0, active: true });
+    reset({ level: 1, name: "", description: "", adjustment: 0, partnerAdjustment: 0, active: true });
     setOpen(true);
   };
 
@@ -101,6 +101,7 @@ export function ComplexityTable({ initialComplexities }: { initialComplexities: 
             <TableHead>Nivel</TableHead>
             <TableHead>Nombre</TableHead>
             <TableHead>Ajuste</TableHead>
+            <TableHead>Ajuste socio (Cento)</TableHead>
             <TableHead>Activo</TableHead>
             <TableHead />
           </TableRow>
@@ -111,6 +112,7 @@ export function ComplexityTable({ initialComplexities }: { initialComplexities: 
               <TableCell>{item.level}</TableCell>
               <TableCell className="font-medium">{item.name}</TableCell>
               <TableCell>{formatCurrency(item.adjustment)}</TableCell>
+              <TableCell>{formatCurrency(item.partnerAdjustment)}</TableCell>
               <TableCell>
                 <Badge variant={item.active ? "default" : "secondary"}>
                   {item.active ? "Activo" : "Inactivo"}
@@ -162,6 +164,18 @@ export function ComplexityTable({ initialComplexities }: { initialComplexities: 
                 <FieldLabel htmlFor="adjustment">Ajuste (Q)</FieldLabel>
                 <Input id="adjustment" type="number" step="0.01" inputMode="decimal" {...register("adjustment", { valueAsNumber: true })} />
                 <FieldError errors={[errors.adjustment]} />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="partnerAdjustment">Ajuste de socio — Cento (Q)</FieldLabel>
+                <Input
+                  id="partnerAdjustment"
+                  type="number"
+                  step="0.01"
+                  inputMode="decimal"
+                  {...register("partnerAdjustment", { valueAsNumber: true })}
+                />
+                <FieldError errors={[errors.partnerAdjustment]} />
               </Field>
 
               <Field orientation="horizontal">

@@ -27,7 +27,8 @@ interface Props {
 }
 
 export function EquipmentLineDialog({ open, onOpenChange, onAdd }: Props) {
-  const { catalogs } = useQuoteWizard();
+  const { state, catalogs } = useQuoteWizard();
+  const isCento = state.quoteType === "CENTO";
   const [subStep, setSubStep] = useState<SubStep>("equipment");
   const [equipmentId, setEquipmentId] = useState<string | null>(null);
   const [meters, setMeters] = useState("");
@@ -60,18 +61,24 @@ export function EquipmentLineDialog({ open, onOpenChange, onAdd }: Props) {
       return;
     }
 
+    // Cento (extensión confirmada, ver CLAUDE.md): el equipo se sigue
+    // seleccionando del catálogo normal para registrar qué se instaló, pero
+    // no se cobra (Q 0.00 explícito, Cento ya es dueño del equipo); el kit
+    // y la complejidad usan su tarifa de socio en vez de la normal. Esta
+    // es solo la vista previa del asistente — el servidor vuelve a resolver
+    // todo esto de forma autoritativa al guardar (quote-line-resolver.ts).
     onAdd({
       lineId: crypto.randomUUID(),
       equipmentId: equipment.id,
       equipmentName: equipment.name,
-      equipmentPrice: equipment.price,
+      equipmentPrice: isCento ? 0 : equipment.price,
       quantity: quantityValue,
       meters: metersValue,
       complexityId: complexity.id,
       complexityName: complexity.name,
-      complexityAdjustment: complexity.adjustment,
+      complexityAdjustment: isCento ? complexity.partnerAdjustment : complexity.adjustment,
       kitId: kit.id,
-      kitPrice: kit.price,
+      kitPrice: isCento ? (kit.partnerPrice ?? 0) : kit.price,
     });
 
     onOpenChange(false);

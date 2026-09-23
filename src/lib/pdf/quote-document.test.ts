@@ -155,6 +155,55 @@ describe("renderQuotePdf — datos de empresa desde CompanySettings, no hardcode
   });
 });
 
+describe("renderQuotePdf — extensión Cento (ver CLAUDE.md)", () => {
+  it("muestra el vendedor de Cento y la referencia del cliente final cuando quoteType es CENTO", async () => {
+    const text = await textOf(
+      baseData({
+        quoteType: "CENTO",
+        centoVendorName: "Ana López",
+        centoClientReference: "Ferretería El Progreso",
+      }),
+    );
+    expect(text).toContain("Ana López");
+    expect(text).toContain("Ferretería El Progreso");
+  });
+
+  it("muestra la nota de equipo suministrado por el cliente en la línea de equipo cuando es Cento", async () => {
+    const text = await textOf(
+      baseData({
+        quoteType: "CENTO",
+        centoVendorName: "Ana López",
+        centoClientReference: "Ferretería El Progreso",
+      }),
+    );
+    expect(text).toContain("Equipo suministrado por el cliente");
+  });
+
+  it("NO muestra la nota de Cento en una cotización Climatisa normal, aunque el equipo esté en Q 0.00", async () => {
+    // Caso deliberado: los datos demo del proyecto tienen equipos a Q 0.00
+    // (ver seed). La nota debe depender de quoteType, nunca del precio.
+    const text = await textOf(baseData());
+    expect(text).not.toContain("Equipo suministrado por el cliente");
+  });
+
+  it("NO muestra el bloque de Cento (vendedor/referencia) en una cotización Climatisa", async () => {
+    const text = await textOf(baseData());
+    expect(text).not.toContain("Vendedor de Cento");
+    expect(text).not.toContain("Cliente final:");
+  });
+
+  it("Romeo Morales sigue apareciendo igual en una cotización Cento, sin cambios", async () => {
+    const text = await textOf(
+      baseData({
+        quoteType: "CENTO",
+        centoVendorName: "Ana López",
+        centoClientReference: "Ferretería El Progreso",
+      }),
+    );
+    expect(text).toContain(VENDEDOR_RESPONSABLE);
+  });
+});
+
 describe("renderQuotePdf — el vendedor nunca depende de datos externos", () => {
   it("el vendedor es siempre Romeo Morales sin importar los datos del cliente o la empresa", async () => {
     const text = await textOf(

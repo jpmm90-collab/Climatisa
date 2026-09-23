@@ -26,6 +26,53 @@ que la plataforma de build coincida con la de runtime. No revertir a
 `bcrypt` nativo ni volver a preguntar por esto salvo que el product owner
 lo pida explícitamente.
 
+## Extensiones confirmadas al skill
+
+A diferencia de las excepciones de arriba (que sustituyen una regla del
+skill), esto es funcionalidad nueva que **amplía** el alcance original del
+skill — confirmada explícitamente por el product owner, no una corrección
+de ambigüedad.
+
+**Tipo de cotización (`quoteType`).** Toda cotización se crea para
+**Climatisa** (cliente final, flujo normal) o para **Cento** (socio
+comercial). Cento es un caso especial único y fijo — no un concepto
+general de "socios comerciales"; no generalizar ni construir un modelo de
+partners.
+
+Reglas de Cento:
+- El cliente es un registro fijo sembrado una sola vez
+  (`CENTO_CLIENT_ID = "cento"` en `src/lib/constants.ts`, mismo patrón que
+  `CompanySettings.id = "default"`). El asistente nunca lo busca ni lo
+  crea — lo asigna automáticamente al elegir "Cento" en el primer paso, y
+  el buscador normal de clientes lo excluye explícitamente.
+- El equipo se sigue seleccionando del catálogo normal (para registrar qué
+  se instaló) pero **no se cobra**: `equipmentPriceSnapshot` queda en
+  `Q 0.00` de forma explícita, mostrado siempre con la nota "Equipo
+  suministrado por el cliente" (constante `CENTO_EQUIPMENT_SUPPLIED_NOTE`)
+  — nunca oculto ni omitido, en el resumen del asistente, la vista de la
+  cotización guardada y el PDF.
+- La instalación (kit + complejidad) sí se cobra, pero a la **tarifa de
+  socio** (`InstallationKit.partnerPrice`, `Complexity.partnerAdjustment`)
+  en vez de la tarifa normal. Son campos paralelos a los existentes
+  (`price`, `adjustment`), nunca los reemplazan — ambas tarifas conviven
+  siempre, se editan juntas en `/admin/kits` y `/admin/complejidades`.
+- Dos campos de texto libre obligatorios, propios de la cotización
+  (`Quote.centoVendorName`, `Quote.centoClientReference`): vendedor de
+  Cento que lleva la venta, y referencia (no un registro de cliente
+  completo) del cliente final de Cento.
+- `quoteType` se fija al crear la cotización y **nunca cambia al editar**
+  (mismo tratamiento que `quoteNumber`/`status`) — el servidor siempre usa
+  el valor ya guardado, nunca el que venga en el payload de edición.
+- El motor de precios puro (`calculateLineTotal` en
+  `src/lib/pricing/engine.ts`) **no se modificó**. La selección de tarifa
+  según `quoteType` vive en el resolver
+  (`resolveLineFromCatalog` en `src/lib/quote-line-resolver.ts`, parámetro
+  `quoteType` opcional, default `"CLIMATISA"`) — exactamente el mismo
+  patrón que ya separaba "qué precio corresponde" (resolver) de "cómo se
+  suma" (motor). Esto es deliberado: mantiene las pruebas del motor de
+  precios intactas y evita que un cambio de Cento pueda romper el camino
+  de Climatisa por accidente.
+
 ## No negociable (repetido aquí para que nunca se pierda de vista)
 
 - Stack fijo: Next.js 14 (App Router) + TypeScript strict, Tailwind + shadcn/ui,

@@ -2,7 +2,11 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { serializeQuote } from "@/lib/serializers";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { INSTALLATION_BASE_TEXT, VENDEDOR_RESPONSABLE } from "@/lib/constants";
+import {
+  CENTO_EQUIPMENT_SUPPLIED_NOTE,
+  INSTALLATION_BASE_TEXT,
+  VENDEDOR_RESPONSABLE,
+} from "@/lib/constants";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -60,6 +64,16 @@ export default async function VerCotizacionPage({ params }: { params: Promise<{ 
           <p className="text-sm text-muted-foreground">Tel. {quote.client.phone}</p>
           <p className="text-sm text-muted-foreground">NIT: {quote.client.nit}</p>
           <p className="text-sm text-muted-foreground">Vendedor: {VENDEDOR_RESPONSABLE}</p>
+          {quote.quoteType === "CENTO" ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Vendedor de Cento: {quote.centoVendorName}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Cliente final: {quote.centoClientReference}
+              </p>
+            </>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -69,12 +83,17 @@ export default async function VerCotizacionPage({ params }: { params: Promise<{ 
             <CardContent className="flex flex-col gap-2 py-4">
               <p className="font-medium">{area.name}</p>
               {area.equipment.map((line) => (
-                <div key={line.id} className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {line.equipmentNameSnapshot}
-                    {line.quantity > 1 ? ` × ${line.quantity}` : ""}
-                  </span>
-                  <span>{formatCurrency(line.lineTotal)}</span>
+                <div key={line.id} className="flex flex-col gap-0.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {line.equipmentNameSnapshot}
+                      {line.quantity > 1 ? ` × ${line.quantity}` : ""}
+                    </span>
+                    <span>{formatCurrency(line.lineTotal)}</span>
+                  </div>
+                  {quote.quoteType === "CENTO" ? (
+                    <p className="text-xs text-muted-foreground">{CENTO_EQUIPMENT_SUPPLIED_NOTE}</p>
+                  ) : null}
                 </div>
               ))}
               <Separator />

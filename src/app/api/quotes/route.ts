@@ -7,6 +7,7 @@ import { calculateAreaPrice, calculateDeposit, calculateQuoteTotals } from "@/li
 import { generateQuoteNumber } from "@/lib/quote-number";
 import { serializeQuote } from "@/lib/serializers";
 import { loadLineCatalogs, resolveLineFromCatalog, QuoteValidationError } from "@/lib/quote-line-resolver";
+import { CENTO_CLIENT_ID } from "@/lib/constants";
 
 export async function POST(request: NextRequest) {
   const { error } = await requireSession();
@@ -35,6 +36,16 @@ export async function POST(request: NextRequest) {
     if (!client) {
       throw new QuoteValidationError("El cliente seleccionado ya no existe");
     }
+    // Cento es un socio comercial fijo y único (extensión confirmada, ver
+    // CLAUDE.md) — su cliente siempre es el registro sembrado, nunca uno
+    // elegido libremente. El asistente ya lo asigna así; esto es solo la
+    // verificación server-side de esa regla.
+    if (input.quoteType === "CENTO" && client.id !== CENTO_CLIENT_ID) {
+      throw new QuoteValidationError("Una cotización Cento debe usar el cliente fijo de Cento");
+    }
+    if (input.quoteType === "CLIMATISA" && client.id === CENTO_CLIENT_ID) {
+      throw new QuoteValidationError("El cliente fijo de Cento solo se usa en cotizaciones tipo Cento");
+    }
 
     const equipmentIds = [
       ...new Set(input.areas.flatMap((a) => a.equipmentLines.map((l) => l.equipmentId))),
@@ -45,7 +56,9 @@ export async function POST(request: NextRequest) {
     const catalogs = await loadLineCatalogs(prisma, equipmentIds, complexityIds);
 
     const areaInputs = input.areas.map((area) => {
-      const lines = area.equipmentLines.map((line) => resolveLineFromCatalog(line, catalogs));
+      const lines = area.equipmentLines.map((line) =>
+        resolveLineFromCatalog(line, catalogs, input.quoteType),
+      );
       return { name: area.name, lines, areaTotal: calculateAreaPrice(lines) };
     });
 
@@ -65,6 +78,10 @@ export async function POST(request: NextRequest) {
           data: {
             quoteNumber,
             clientId: client.id,
+            quoteType: input.quoteType,
+            centoVendorName: input.quoteType === "CENTO" ? input.centoVendorName || null : null,
+            centoClientReference:
+              input.quoteType === "CENTO" ? input.centoClientReference || null : null,
             subtotal,
             discountType: input.discountType,
             discountValue: input.discountValue,

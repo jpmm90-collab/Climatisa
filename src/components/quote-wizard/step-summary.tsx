@@ -15,7 +15,12 @@ import { WizardBackButton } from "@/components/quote-wizard/wizard-back-button";
 import { resetWizard } from "@/components/quote-wizard/quote-wizard";
 import { deriveQuote } from "@/lib/quote-wizard/derive";
 import { formatCurrency } from "@/lib/format";
-import { INSTALLATION_BASE_TEXT, TEXT_LIMITS, VENDEDOR_RESPONSABLE } from "@/lib/constants";
+import {
+  CENTO_EQUIPMENT_SUPPLIED_NOTE,
+  INSTALLATION_BASE_TEXT,
+  TEXT_LIMITS,
+  VENDEDOR_RESPONSABLE,
+} from "@/lib/constants";
 
 export function StepSummary() {
   const { state, update, editQuoteId } = useQuoteWizard();
@@ -41,6 +46,9 @@ export function StepSummary() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientId: state.client.id,
+          quoteType: state.quoteType,
+          centoVendorName: state.quoteType === "CENTO" ? state.centoVendorName : "",
+          centoClientReference: state.quoteType === "CENTO" ? state.centoClientReference : "",
           areas: state.areas.map((area) => ({
             name: area.name,
             equipmentLines: area.equipmentLines.map((line) => ({
@@ -103,6 +111,16 @@ export function StepSummary() {
           <p className="text-sm text-muted-foreground">Tel. {state.client?.phone}</p>
           <p className="text-sm text-muted-foreground">NIT: {state.client?.nit}</p>
           <p className="text-sm text-muted-foreground">Vendedor: {VENDEDOR_RESPONSABLE}</p>
+          {state.quoteType === "CENTO" ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Vendedor de Cento: {state.centoVendorName}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Cliente final: {state.centoClientReference}
+              </p>
+            </>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -114,12 +132,17 @@ export function StepSummary() {
               {area.lines.map((line, index) => {
                 const source = state.areas.find((a) => a.areaId === area.areaId)?.equipmentLines[index];
                 return (
-                  <div key={line.lineId} className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {source?.equipmentName}
-                      {source && source.quantity > 1 ? ` × ${source.quantity}` : ""}
-                    </span>
-                    <span>{formatCurrency(line.lineTotal)}</span>
+                  <div key={line.lineId} className="flex flex-col gap-0.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {source?.equipmentName}
+                        {source && source.quantity > 1 ? ` × ${source.quantity}` : ""}
+                      </span>
+                      <span>{formatCurrency(line.lineTotal)}</span>
+                    </div>
+                    {state.quoteType === "CENTO" ? (
+                      <p className="text-xs text-muted-foreground">{CENTO_EQUIPMENT_SUPPLIED_NOTE}</p>
+                    ) : null}
                   </div>
                 );
               })}

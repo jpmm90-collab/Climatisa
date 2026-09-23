@@ -12,7 +12,7 @@ import { WizardBackButton } from "@/components/quote-wizard/wizard-back-button";
 import { EquipmentLineDialog } from "@/components/quote-wizard/equipment-line-dialog";
 import { calculateLineTotal } from "@/lib/pricing/engine";
 import { formatCurrency } from "@/lib/format";
-import { TEXT_LIMITS } from "@/lib/constants";
+import { CENTO_EQUIPMENT_SUPPLIED_NOTE, TEXT_LIMITS } from "@/lib/constants";
 import type { WizardArea } from "@/lib/quote-wizard/types";
 
 export function StepArea() {
@@ -95,6 +95,9 @@ export function StepArea() {
                   <p className="text-sm text-muted-foreground">
                     {line.meters} m · {line.complexityName}
                   </p>
+                  {state.quoteType === "CENTO" ? (
+                    <p className="text-xs text-muted-foreground">{CENTO_EQUIPMENT_SUPPLIED_NOTE}</p>
+                  ) : null}
                   <p className="text-sm font-medium">{formatCurrency(totals.lineTotal)}</p>
                 </div>
                 <Button

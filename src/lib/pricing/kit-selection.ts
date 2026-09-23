@@ -3,6 +3,10 @@ export interface InstallationKitRange {
   minMeters: number;
   maxMeters: number | null;
   price: number;
+  // Tarifa de socio/distribuidor (cotizaciones Cento). Opcional para no
+  // romper construcciones existentes de este tipo (ej. en pruebas) que no
+  // la necesitan — la selección por metros no depende de este campo.
+  partnerPrice?: number;
   active: boolean;
 }
 

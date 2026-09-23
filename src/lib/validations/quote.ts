@@ -23,8 +23,20 @@ const quoteExtraSchema = z.object({
   price: z.number().nonnegative(),
 });
 
-export const createQuoteSchema = z.object({
+// Extensión confirmada al skill (ver CLAUDE.md, "Extensiones confirmadas
+// al skill"): para quién es la cotización. CLIMATISA es el flujo normal;
+// CENTO es un socio comercial único y fijo (no un concepto general de
+// "socios") con cliente fijo y dos campos de texto obligatorios.
+const baseQuoteSchema = z.object({
   clientId: z.string().min(1, "Selecciona un cliente"),
+  quoteType: z.enum(["CLIMATISA", "CENTO"]).default("CLIMATISA"),
+  centoVendorName: z.string().trim().max(TEXT_LIMITS.centoVendorName).optional().or(z.literal("")),
+  centoClientReference: z
+    .string()
+    .trim()
+    .max(TEXT_LIMITS.centoClientReference)
+    .optional()
+    .or(z.literal("")),
   areas: z.array(quoteAreaSchema).min(1, "La cotización necesita al menos un área"),
   extras: z.array(quoteExtraSchema),
   discountType: z.enum(["PERCENTAGE", "AMOUNT"]),
@@ -48,7 +60,34 @@ export const createQuoteSchema = z.object({
     .or(z.literal("")),
 });
 
-export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;
+// quoteType === "CENTO" hace obligatorios los dos campos de texto libre
+// (vendedor de Cento, referencia del cliente final) — para CLIMATISA no
+// aplican. Función compartida para no duplicar la regla entre crear/editar.
+function requireCentoFieldsWhenCento(
+  data: { quoteType: "CLIMATISA" | "CENTO"; centoVendorName?: string; centoClientReference?: string },
+  ctx: z.RefinementCtx,
+) {
+  if (data.quoteType !== "CENTO") return;
+
+  if (!data.centoVendorName?.trim()) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["centoVendorName"],
+      message: "El vendedor de Cento es obligatorio para este tipo de cotización",
+    });
+  }
+  if (!data.centoClientReference?.trim()) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["centoClientReference"],
+      message: "La referencia del cliente final es obligatoria para este tipo de cotización",
+    });
+  }
+}
+
+export const createQuoteSchema = baseQuoteSchema.superRefine(requireCentoFieldsWhenCento);
+
+export type CreateQuoteInput = z.infer<typeof baseQuoteSchema>;
 
 // Edición (sección 43): "se reemplazan los snapshots de los elementos
 // modificados" — sourceLineId, cuando viene presente, identifica una línea
@@ -66,8 +105,10 @@ const updateQuoteAreaSchema = quoteAreaSchema.extend({
     .min(1, "El área necesita al menos un equipo"),
 });
 
-export const updateQuoteSchema = createQuoteSchema.extend({
-  areas: z.array(updateQuoteAreaSchema).min(1, "La cotización necesita al menos un área"),
-});
+export const updateQuoteSchema = baseQuoteSchema
+  .extend({
+    areas: z.array(updateQuoteAreaSchema).min(1, "La cotización necesita al menos un área"),
+  })
+  .superRefine(requireCentoFieldsWhenCento);
 
 export type UpdateQuoteInput = z.infer<typeof updateQuoteSchema>;

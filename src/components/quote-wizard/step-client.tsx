@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuoteWizard } from "@/components/quote-wizard/context";
+import { CENTO_CLIENT_ID } from "@/lib/constants";
 
 interface ClientResult {
   id: string;
@@ -29,7 +30,12 @@ export function StepClient() {
       setSearching(true);
       fetch(`/api/clients?q=${encodeURIComponent(query)}`)
         .then((res) => res.json())
-        .then((data) => setResults(data.clients ?? []))
+        .then((data) =>
+          // El cliente fijo de Cento (extensión confirmada, ver CLAUDE.md)
+          // nunca se busca ni se elige desde este flujo — solo se asigna
+          // automáticamente al escoger "Cento" en el primer paso.
+          setResults((data.clients ?? []).filter((c: ClientResult) => c.id !== CENTO_CLIENT_ID)),
+        )
         .catch(() => setResults([]))
         .finally(() => setSearching(false));
     }, 300);

@@ -40,13 +40,13 @@ export function KitsTable({ initialKits }: { initialKits: KitRow[] }) {
     formState: { errors, isSubmitting },
   } = useForm<InstallationKitInput>({
     resolver: zodResolver(installationKitSchema),
-    defaultValues: { minMeters: 0, maxMeters: 5, price: 0, active: true },
+    defaultValues: { minMeters: 0, maxMeters: 5, price: 0, partnerPrice: 0, active: true },
   });
 
   const openCreate = () => {
     setEditing(null);
     setServerError(null);
-    reset({ minMeters: 0, maxMeters: 5, price: 0, active: true });
+    reset({ minMeters: 0, maxMeters: 5, price: 0, partnerPrice: 0, active: true });
     setOpen(true);
   };
 
@@ -100,6 +100,7 @@ export function KitsTable({ initialKits }: { initialKits: KitRow[] }) {
             <TableHead>Desde (m)</TableHead>
             <TableHead>Hasta (m)</TableHead>
             <TableHead>Precio</TableHead>
+            <TableHead>Precio socio (Cento)</TableHead>
             <TableHead>Activo</TableHead>
             <TableHead />
           </TableRow>
@@ -110,6 +111,7 @@ export function KitsTable({ initialKits }: { initialKits: KitRow[] }) {
               <TableCell>{kit.minMeters}</TableCell>
               <TableCell>{kit.maxMeters === null ? "Sin límite" : kit.maxMeters}</TableCell>
               <TableCell>{formatCurrency(kit.price)}</TableCell>
+              <TableCell>{formatCurrency(kit.partnerPrice)}</TableCell>
               <TableCell>
                 <Badge variant={kit.active ? "default" : "secondary"}>
                   {kit.active ? "Activo" : "Inactivo"}
@@ -169,6 +171,18 @@ export function KitsTable({ initialKits }: { initialKits: KitRow[] }) {
                 <FieldLabel htmlFor="price">Precio del kit (Q)</FieldLabel>
                 <Input id="price" type="number" step="0.01" inputMode="decimal" {...register("price", { valueAsNumber: true })} />
                 <FieldError errors={[errors.price]} />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="partnerPrice">Precio de socio — Cento (Q)</FieldLabel>
+                <Input
+                  id="partnerPrice"
+                  type="number"
+                  step="0.01"
+                  inputMode="decimal"
+                  {...register("partnerPrice", { valueAsNumber: true })}
+                />
+                <FieldError errors={[errors.partnerPrice]} />
               </Field>
 
               <Field orientation="horizontal">

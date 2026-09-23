@@ -1,6 +1,8 @@
 # Estado del proyecto — Climatisa Cotizador
 
-Última actualización: 2026-09-22 (segunda auditoría del día). Este
+Última actualización: 2026-09-23 — se agregó la extensión "tipo de
+cotización" (Climatisa/Cento), ver sección 1 y 5. Antes de eso: 2026-09-22
+(segunda auditoría del día). Este
 documento se generó/actualizó auditando el estado real **en producción**,
 no de memoria ni copiando la versión anterior de este archivo: cada
 afirmación se verificó en vivo (base de datos real de Railway, Vercel CLI,
@@ -101,6 +103,37 @@ siendo una constante en `src/lib/constants.ts`, sin exponerse como prop ni
 depender de la sesión — no hay forma estructural de sobreescribirlo desde
 la UI.
 
+### Extensión confirmada al skill — tipo de cotización (2026-09-23)
+
+A diferencia de las decisiones de arriba (que resuelven una ambigüedad),
+esto es funcionalidad nueva que amplía el alcance original del skill —
+confirmada explícitamente por el product owner, documentada en `CLAUDE.md`
+sección "Extensiones confirmadas al skill".
+
+Toda cotización se crea para **Climatisa** (cliente final, flujo normal
+sin cambios) o para **Cento** (socio comercial único y fijo — no un
+concepto general de "socios", nunca generalizar). Para Cento: el cliente
+es un registro fijo sembrado una sola vez (`id = "cento"`, nunca buscado
+ni creado desde el asistente); el equipo se sigue eligiendo del catálogo
+normal pero no se cobra (`Q 0.00` explícito, con la nota "Equipo
+suministrado por el cliente" siempre visible — resumen del asistente,
+vista de la cotización guardada y PDF); la instalación (kit +
+complejidad) sí se cobra pero a una **tarifa de socio** paralela
+(`InstallationKit.partnerPrice`, `Complexity.partnerAdjustment`, editables
+en `/admin/kits` y `/admin/complejidades` junto a las tarifas normales);
+y dos campos de texto libre obligatorios propios de la cotización
+(`Quote.centoVendorName`, `Quote.centoClientReference`). `quoteType` se
+fija al crear y nunca cambia al editar (mismo tratamiento que
+`quoteNumber`/`status`).
+
+El motor de precios puro (`calculateLineTotal`) no se tocó — la selección
+de tarifa según `quoteType` vive en `resolveLineFromCatalog`
+(`src/lib/quote-line-resolver.ts`), con un parámetro opcional que por
+defecto se comporta como Climatisa. Las 94 pruebas de precios/PDF que
+existían antes de esta extensión pasan sin haberse modificado; se
+agregaron 15 pruebas nuevas específicas de Cento (109 en total — ver
+sección 5).
+
 ## 2. Qué está completo (Fases 1–6)
 
 Todo lo listado aquí está implementado, pasa la suite de Vitest, y fue
@@ -155,16 +188,18 @@ ad-hoc que nunca se comitearon al repo, no con una suite E2E mantenida.
 
 ## 3. Pendiente antes de usarlo con un cliente real
 
-- [ ] **Reemplazar los datos demo por los datos reales de Climatisa.**
-  **Sigue sin hacerse — confirmado en vivo contra Railway en esta
-  auditoría** (no asumido): 5 equipos a `Q 0.00` ("Split/Cassette/Multi
-  Split Demo"), 5 rangos de kit de instalación (0–25 m) a `Q 0.00`, 3
-  niveles de complejidad con ajuste `Q 0.00`, y `CompanySettings` con
-  `companyName="Empresa Demo"`, `phone="0000-0000"`,
-  `email="demo@empresa.test"` — exactamente igual que en la auditoría
-  anterior, sin cambios. Todo esto ya tiene pantallas de administración
-  funcionando (`/admin/equipos`, `/admin/kits`, `/admin/complejidades`,
-  `/admin/empresa`) — reemplazarlo es trabajo de datos, no de código.
+- [ ] **Reemplazar los datos demo por los datos reales de Climatisa (y
+  ahora también las tarifas de socio de Cento).** Sigue sin hacerse: 5
+  equipos a `Q 0.00` ("Split/Cassette/Multi Split Demo"), 5 rangos de kit
+  de instalación (0–25 m) a `Q 0.00`, 3 niveles de complejidad con ajuste
+  `Q 0.00`, y `CompanySettings` con `companyName="Empresa Demo"`,
+  `phone="0000-0000"`, `email="demo@empresa.test"`. Desde el 2026-09-23
+  también existen `InstallationKit.partnerPrice` y
+  `Complexity.partnerAdjustment` (tarifa de socio para cotizaciones Cento)
+  — igualmente sembrados en `Q 0.00`, mismo trabajo pendiente. Todo esto
+  ya tiene pantallas de administración funcionando (`/admin/equipos`,
+  `/admin/kits`, `/admin/complejidades`, `/admin/empresa`) — reemplazarlo
+  es trabajo de datos, no de código.
 - [ ] **Cambiar las contraseñas de seed.** `admin`/`admin123` y
   `cotizador`/`cotizador123` **siguen siendo las mismas en producción** —
   confirmado en esta auditoría con un login real exitoso usando
@@ -405,3 +440,49 @@ flujo completo con datos de prueba propios, con Playwright contra
     prueba de Railway al terminar (`prisma.quote.delete` +
     `prisma.client.delete`), y se volvió a consultar la base para
     confirmar: **0 clientes, 0 cotizaciones** al cerrar esta auditoría.
+
+### Extensión "tipo de cotización" (Cento) — 2026-09-23
+
+- Migración `20260923184817_add_cento_quote_type` aplicada contra Railway
+  (real, no una base de desarrollo aparte).
+- `npx tsc --noEmit` → 0 errores. `npm run lint` → 0 avisos. `npx vitest
+  run` → **11 archivos, 109 pruebas, 109 pasando** (94 anteriores sin
+  modificar + 15 nuevas de Cento). `npm run build` → build exitoso, 27
+  rutas.
+- Verificación en vivo contra Railway (servidor de producción local,
+  `npm run start`, mismo estándar que las fases anteriores): se subieron
+  temporalmente la tarifa normal y de socio de un kit y una complejidad a
+  valores distintos entre sí (kit `price=300`/`partnerPrice=120`,
+  complejidad `adjustment=80`/`partnerAdjustment=30`) para poder probar
+  que Cento realmente usa la tarifa de socio y no la normal, no solo que
+  ambas coincidan en cero.
+  - Flujo completo del asistente para Cento: selección de tipo → datos de
+    Cento (vendedor + referencia) → área con un equipo → resumen → guardar
+    → `COT-2026-000003`. Total esperado 0 (equipo) + 150 (120+30,
+    instalación a tarifa de socio) = **Q 150.00**, confirmado en el
+    resumen del asistente.
+  - **Verificado directamente en la base de datos** (no solo el texto
+    renderizado): `equipmentPriceSnapshot = 0`,
+    `installationKitPriceSnapshot = 120` (la tarifa de socio, no los 300
+    normales), `complexityAdjustmentSnapshot = 30` (la tarifa de socio, no
+    los 80 normales), `lineTotal = 150`.
+  - Nota "Equipo suministrado por el cliente" confirmada visible en el
+    paso de área, el resumen del asistente, la vista de la cotización
+    guardada y el PDF — nunca oculta.
+  - PDF de la cotización Cento: HTTP 200, contiene vendedor de Cento,
+    referencia del cliente final, la nota de equipo suministrado, y
+    "Romeo Morales" sin cambios.
+  - Botón de WhatsApp probado también sobre la cotización Cento: enlace
+    `wa.me` válido, mensaje con el nombre correcto ("Cento").
+  - **Prueba de regresión del camino Climatisa** (mismo servidor, mismos
+    datos temporalmente distintos): se creó una cotización Climatisa en
+    paralelo — el resumen mostró correctamente la tarifa **normal**
+    (300+80 = Q 380.00), no la de socio, confirmando que el branching por
+    `quoteType` realmente distingue los dos caminos y no rompió el
+    existente. Sin nota de "equipo suministrado", como corresponde.
+  - **Limpieza confirmada:** se borraron ambas cotizaciones de prueba
+    (Cento y Climatisa) y el cliente de prueba de Climatisa; el cliente
+    fijo de Cento **se conservó a propósito** (no es dato de prueba). El
+    kit y la complejidad se restauraron a `Q 0.00` en sus cuatro campos
+    (`price`, `partnerPrice`, `adjustment`, `partnerAdjustment`).
+    Verificación final: 1 cliente (solo Cento), 0 cotizaciones.

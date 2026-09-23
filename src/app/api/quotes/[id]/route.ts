@@ -11,6 +11,7 @@ import {
   QuoteValidationError,
   type ResolvedQuoteLine,
 } from "@/lib/quote-line-resolver";
+import { CENTO_CLIENT_ID } from "@/lib/constants";
 
 // Ver una cotización SIEMPRE muestra sus snapshots históricos, nunca
 // recalcula con precios vigentes (sección 43: "ver = histórico").
@@ -71,6 +72,21 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       throw new QuoteValidationError("El cliente seleccionado ya no existe");
     }
 
+    // quoteType es fijo al crear, nunca cambia al editar (igual que
+    // quoteNumber/status) — se usa el valor ya guardado, nunca el que venga
+    // en el payload, sin importar lo que el asistente haya enviado.
+    const quoteType = existingQuote.quoteType;
+    if (quoteType === "CENTO") {
+      if (client.id !== CENTO_CLIENT_ID) {
+        throw new QuoteValidationError("Una cotización Cento debe usar el cliente fijo de Cento");
+      }
+      if (!input.centoVendorName?.trim() || !input.centoClientReference?.trim()) {
+        throw new QuoteValidationError(
+          "El vendedor de Cento y la referencia del cliente final son obligatorios",
+        );
+      }
+    }
+
     const existingLineById = new Map(
       existingQuote.areas.flatMap((area) => area.equipment.map((line) => [line.id, line])),
     );
@@ -104,7 +120,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             lineTotal: Number(preserved.lineTotal),
           };
         }
-        return resolveLineFromCatalog(line, catalogs);
+        return resolveLineFromCatalog(line, catalogs, quoteType);
       });
 
       return { name: area.name, lines, areaTotal: calculateAreaPrice(lines) };
@@ -131,6 +147,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         where: { id: params.id },
         data: {
           clientId: client.id,
+          // quoteType NO se incluye aquí a propósito: es inmutable al
+          // editar, y omitirlo del data de update deja el valor guardado
+          // intacto sin importar lo que haya venido en el payload.
+          centoVendorName: quoteType === "CENTO" ? input.centoVendorName || null : null,
+          centoClientReference: quoteType === "CENTO" ? input.centoClientReference || null : null,
           subtotal,
           discountType: input.discountType,
           discountValue: input.discountValue,
